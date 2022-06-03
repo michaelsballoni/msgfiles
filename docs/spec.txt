@@ -1,0 +1,83 @@
+//
+// Architecure
+//
+client:
+	login <username>
+	
+	upload <local path> <server path>
+		deep copies <local path> to the server as <server path>
+		smart about not uploading stuff that hasn't changed
+
+	download <server path> <local path> 
+		if a directory, downloads as a ZIP file
+
+	copy <from server path> <to server path>
+	move <from server path> <to server path>
+		copy-then-delete
+	delete <server path>
+	
+	===
+
+	send <to username> <message> <server path>
+	pop: lists messages with ids, message, path, and size
+	read <message id>
+		downloads the file from the server and opens it
+			if a directory, downloads as a ZIP file and opens that
+	save <message id> <server path>
+		copy message attachments to server path
+	delete <message id>
+	archive <message id>
+	===
+	blockuser <username>
+		user is logged off and can't log in or do anything
+	
+server:
+	takes -db and -filestore and -port settings
+	hosts SQLite database file
+		creates DB and schema if not exists
+	serves files in filestore directory path
+	exposes API on port
+
+
+//
+// Platform
+//
+.NET!
+prefixstream library
+	blob
+	string
+	string-string dictionary
+	
+client: CLI
+	TcpClient->SslStream tolerating any cert
+	
+server: windows service / console app
+	TcpListener->SslStream w/generated-self-signed cert
+
+
+//
+// Client UI: others can do UI well
+//
+prompt to log in
+tabs at top
+	files
+		directory tree at left
+		lists folders+files in tree at left
+		keeps tree at left up-to-date while driving list on right
+		toolbar:
+			upload file-or-folder
+			create folder
+			delete file-or-folder
+	mail
+		tree at left
+			inbox
+			archive
+			sent
+			trash
+		list at right
+			messages
+		toolbar:
+			inbox: delete-or-archive
+			send-msg: who to, what message, what attachment
+tabs+toolbar on right
+progress+status bar
