@@ -40,51 +40,111 @@ CODE { COLOR: #990000; FONT-FAMILY: "Courier New", Courier, mono; }
 <!-------------------------------     STEP 1      --------------------------->
 <!--  Fill in the details (CodeProject will reformat this section for you) -->
 
-<pre>
-Title:       Enter Article Title Here
-Description: Enter a one-liner that describes your article
-Abstract:    Enter a single paragraph (or less) that summarise what this article is about
+    <pre>
+Title:       msgfiles, a file sending system
+Description: Code for a basic client-server and application for network file transfers
+Abstract:    msgfiles is designed to be set up on a shared network to support multiple users transferring files to each other.  Well suitied to homes, schools, and offices, where there is a general level of trust between the users.  The code is designed to be scalable, so internet installations are possible.  I'm don't want to run a .com, but perhaps you do.  And I would be here to help.
 
-Author:      Enter your Code Project User Name (or suggest one if you're not a member)
-Email:       Enter your Code Project E-mail Login (or the email you wish to use if not a member)
+Author:      Michael Sydney Balloni
+Email:       balloni.michael@yahoo.com
 
-Language:    Enter the Languages that Apply to Your Article (TypeScript, C# 3.0, etc.)
-Platform:    Enter the Platforms that Apply to Your Article (Linux, Android, Windows etc.)
-Technology:  Enter the Technologies that Apply to Your Article (.NET Core, node.js, etc.)
-Topic:       What is the article about (Graphimg, AI, data processing etc)
+Language:    C#
+Platform:    Cross-Platform
+Technology:  .NET
+Topic:       File Storage and Transfer
 
-Section      Enter the Code Project Section you Wish the Article to Appear
-SubSection   Enter the Code Project SubSection you Wish the Article to Appear
+Section      General Programming
+SubSection   Internet
 
-License:     Enter the license (<a href="http://www.codeproject.com/info/licenses.aspx">CPOL, CPL, MIT, etc</a>)
+License:     Apache 2.0
 </pre>
 
 <!-------------------------------     STEP 2      --------------------------->
 <!--  Include download and sample image information.                       --> 
 
 <ul class=download>
+<!-- FORNOW - Collect the goodies -->
 <li><a href="Article_demo.zip">Download demo project - XXX Kb </a></li>
 <li><a href="Article_src.zip">Download source - XXX Kb</a></li>
 </ul>
-
-<p><img src="Article.gif" alt="Sample Image - maximum width is 600 pixels" 
-        style="width:400px; height:200px"></p>
 
 <!-------------------------------     STEP 3      --------------------------->
 
 <!--  Add the article text. Please use simple formatting (<h2>, <p> etc)   -->
 
 <h2>Introduction</h2>
+<p>
+    I worked for a cloud storage .com back in the 2000's, 
+    when clouds were on whiteboards, not industries.  
+    We called it online file storage.
+    You'd upload your files, then you could access them anywhere...
+    and send them to your friends.
+    It wasn't file sharing like Napster / Gnutella / Limewire,
+    you weren't sharing your CD collection with the internet.
+    But you could send your CD collection to your sister.
+    So we considered this to be "fair use" and stayed below the radar.
+</p>
+<p>
+    A lot of tech has evolved and emerged since then, 
+    and you can make the argument that there's no justificate for file sharing, or sending,
+    because there is a bustling marketplace for buying and renting access to files online.
+    Pay your monthly fee for access to one castle,
+    and send whatever you want to somebody else paying a monthly fee to the same castle.
+    All legit, all above-board.
+    Something like Napster will never (be allowed to) exist again.
+</p>
+<p>
+    So what's this msgfiles business all about then?
+    Well, what if what you want to send is not in one of these castles for rent?
+    What if you've just created something new, and want to send it to a friend?
+    There are services for sending attachments of any size.
+    You could ZIP a large directory of files and send that as a large attachment,
+    a CD collection to your sister even.
+</p>
+<p>
+    And we're back to cloud computing.
+</p>
+<p>
+    msgfiles is not that.
+    It is all about locality, and simplicity.
+    Your home, your work, your dorm.
+    Portable command-line server.
+    Portable command-line client.
+</p>
 
-<p>What the article / code snippet / walk-through does,and why it's useful. 
-State the  problem it solves. This should introduce the article, not just 
-repeat the Abstract.</p>
+<h2>msgfiles - The Client App</h2>
+<p>
+    msgfiles send from to msg filepath
+    msgfiles recv ticket filepath
+</p>
 
-<p>Is there any background to this article that may be useful such 
-as an introduction to the basic ideas presented?</p>
+<h2>msgfilesd - The Server App</h2>
+<p>
+    msgfilesd port
+    Listens on port
+    Receives connection
+    Fires off Task to process connection
+    Task 
+        send:
+            receives request header
+            creates ticket for request
+            receives file into temp dir
+            adds record to database
+            replies with ticket
+        recv:
+            receive ticket
+            look up database record
+            deletes database record
+            replies with file
+            deletes file
+</p>
 
-<h2>The Article Body</h2>
+<p>
+    Here is the reference of available commands:
+</p>
+<pre>
 
+</pre>
 <h3>Using the code</h3>
 
 <p>Lead with code!</p>
