@@ -73,15 +73,18 @@ CREATE TABLE `nodes` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `parentid` bigint DEFAULT NULL,
   `fileid` bigint DEFAULT NULL,
+  `userid` bigint NOT NULL,
   `namestringid` bigint NOT NULL,
   `created` timestamp NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_node_parentids_idx` (`parentid`),
   KEY `fk_node_fileids_idx` (`fileid`),
   KEY `fk_node_nameids_idx` (`namestringid`),
+  KEY `fk_node_users_idx` (`userid`),
   CONSTRAINT `fk_node_fileids` FOREIGN KEY (`fileid`) REFERENCES `files` (`id`),
   CONSTRAINT `fk_node_nameids` FOREIGN KEY (`namestringid`) REFERENCES `strings` (`id`),
-  CONSTRAINT `fk_node_parentids` FOREIGN KEY (`parentid`) REFERENCES `nodes` (`id`)
+  CONSTRAINT `fk_node_parentids` FOREIGN KEY (`parentid`) REFERENCES `nodes` (`id`),
+  CONSTRAINT `fk_node_users` FOREIGN KEY (`userid`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -130,4 +133,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-06-02 21:22:10
+-- Dump completed on 2022-06-04 12:55:47
