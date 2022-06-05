@@ -41,20 +41,20 @@ CODE { COLOR: #990000; FONT-FAMILY: "Courier New", Courier, mono; }
 <!--  Fill in the details (CodeProject will reformat this section for you) -->
 
     <pre>
-Title:       msgfiles, a file sending system
-Description: Code for a basic client-server and application for network file transfers
-Abstract:    msgfiles is designed to be set up on a shared network to support multiple users transferring files to each other.  Well suitied to homes, schools, and offices, where there is a general level of trust between the users.  The code is designed to be scalable, so internet installations are possible.  I'm don't want to run a .com, but perhaps you do.  And I would be here to help.
+Title:       msgfiles, a simple file sending system
+Description: Code for a basic client-server application for sending files over a network
+Abstract:    msgfiles is designed to be set up on a shared network to support users sending files to each other.  Well suitied to homes, schools, and offices, anywhere with connectivity to a common server.
 
 Author:      Michael Sydney Balloni
 Email:       balloni.michael@yahoo.com
 
 Language:    C#
-Platform:    Cross-Platform
+Platform:    Windows
 Technology:  .NET
-Topic:       File Storage and Transfer
+Topic:       File Sending
 
-Section      General Programming
-SubSection   Internet
+Section      Desktop Programming
+SubSection   Win32
 
 License:     Apache 2.0
 </pre>
@@ -74,28 +74,28 @@ License:     Apache 2.0
 
 <h2>Introduction</h2>
 <p>
-    I worked for a cloud storage .com back in the 2000's, 
-    when clouds were on whiteboards, not industries.  
+    I worked for a cloud storage .com back in the 2000's,
+    when clouds were just in the sky or on whiteboards.
     We called it online file storage.
     You'd upload your files, then you could access them anywhere...
     and send them to your friends.
-    It wasn't file sharing like Napster / Gnutella / Limewire,
-    you weren't sharing your CD collection with the internet.
+    It wasn't file sharing like Napster / Gnutella / Limewire;
+    you weren't sharing your CD collection with the whole world.
     But you could send your CD collection to your sister.
-    So we considered this to be "fair use" and stayed below the radar.
+    So this was "fair use" and we stayed below the radar.
 </p>
 <p>
     A lot of tech has evolved and emerged since then, 
-    and you can make the argument that there's no justificate for file sharing, or sending,
+    and you can make the argument that there's no justification for file sharing, or sending,
     because there is a bustling marketplace for buying and renting access to files online.
-    Pay your monthly fee for access to one castle,
+    Pay your monthly fee for access to a file castle,
     and send whatever you want to somebody else paying a monthly fee to the same castle.
     All legit, all above-board.
     Something like Napster will never (be allowed to) exist again.
 </p>
 <p>
     So what's this msgfiles business all about then?
-    Well, what if what you want to send is not in one of these castles for rent?
+    Well, what if what you want to send is not in one of these file castles?
     What if you've just created something new, and want to send it to a friend?
     There are services for sending attachments of any size.
     You could ZIP a large directory of files and send that as a large attachment,
@@ -108,20 +108,33 @@ License:     Apache 2.0
     msgfiles is not that.
     It is all about locality, and simplicity.
     Your home, your work, your dorm.
-    Portable command-line server.
-    Portable command-line client.
 </p>
 
 <h2>msgfiles - The Client App</h2>
 <p>
-    msgfiles send from to msg filepath
-    msgfiles recv ticket filepath
+    Send or Recv
+
+    Send: from, to, message, files, password
+        build msg header, including original filenames
+        ZIP files with password
+        send JSON request
+        upload file
+        receive ticket
+        display ticket with button to Copy it
+
+    Receive: ticket
+        send ticket to server
+        display msg metadata
+        confirm downloading files
+        download ZIP
+        prompt for ZIP password
+        prompt for folder to extract to
+        unzip
 </p>
 
 <h2>msgfilesd - The Server App</h2>
 <p>
-    msgfilesd port
-    Listens on port
+    Port
     Receives connection
     Fires off Task to process connection
     Task 
@@ -132,46 +145,12 @@ License:     Apache 2.0
             adds record to database
             replies with ticket
         recv:
-            receive ticket
-            look up database record
-            deletes database record
+            receives ticket
+            looks up database record
             replies with file
-            deletes file
+    Background Timer deletes old messages
 </p>
 
-<p>
-    Here is the reference of available commands:
-</p>
-<pre>
-
-</pre>
-<h3>Using the code</h3>
-
-<p>Lead with code!</p>
-
-<pre>//
-// Any source code blocks look like this
-//
-var i = 0;
-...</pre>
-
-<p>It's always good to cut to the chase, but always include a discussion on how to
- use the article or code. The <code>class</code> names, the methods and properties,
- or any tricks or tips. </p>
-
-<p>Remember to set the Language of your code snippet using the Language dropdown. </p>
-
-<h3>Basic principles</h2>
-
-<p>Are there basic principles you need to introduce to the reader for them to
-understand the code or the topic? Links to other articles or online docs may
-be helpful</p>
-
-<h3>Step by Step walk-throughs</h3>
-
-<p>For walk-through style articles ensure your screenshots, code samples and code
-are up to date, or at the least ensure you're clear on what version of a technology
-you're discussing. APIs change!</p>
 
 <h2>Conclusion and Points of Interest</h2>
 
