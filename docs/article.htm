@@ -41,9 +41,9 @@ CODE { COLOR: #990000; FONT-FAMILY: "Courier New", Courier, mono; }
 <!--  Fill in the details (CodeProject will reformat this section for you) -->
 
     <pre>
-Title:       msgfiles, a simple file sending system
-Description: Code for a basic client-server application for sending files over a network
-Abstract:    msgfiles is designed to be set up on a shared network to support users sending files to each other.  Well suitied to homes, schools, and offices, anywhere with connectivity to a common server.
+Title:       msgfiles: simple file sending
+Description: A .NET client-server application for sending files over a network
+Abstract:    msgfiles is designed to be set up on a shared network to support users sending files to each other.  Well suitied to homes, schools, and offices, anywhere with connectivity to a common server.  An alternative to using network file sharing or cloud file sharing or sending services, especially for files that should not leave a network, or should not be shared with the entire network.
 
 Author:      Michael Sydney Balloni
 Email:       balloni.michael@yahoo.com
@@ -82,14 +82,13 @@ License:     Apache 2.0
     It wasn't file sharing like Napster / Gnutella / Limewire;
     you weren't sharing your CD collection with the whole world.
     But you could send your CD collection to your sister.
-    So this was "fair use" and we stayed below the radar.
 </p>
 <p>
     A lot of tech has evolved and emerged since then, 
     and you can make the argument that there's no justification for file sharing, or sending,
     because there is a bustling marketplace for buying and renting access to files online.
     Pay your monthly fee for access to a file castle,
-    and send whatever you want to somebody else paying a monthly fee to the same castle.
+    and send whatever you want to somebody else paying a monthly fee to the same castle, problem solved.
     All legit, all above-board.
     Something like Napster will never (be allowed to) exist again.
 </p>
@@ -98,8 +97,8 @@ License:     Apache 2.0
     Well, what if what you want to send is not in one of these file castles?
     What if you've just created something new, and want to send it to a friend?
     There are services for sending attachments of any size.
-    You could ZIP a large directory of files and send that as a large attachment,
-    a CD collection to your sister even.
+    You could ZIP a large directory of files and send that as a large attachment.
+    A CD collection to your sister even.
 </p>
 <p>
     And we're back to cloud computing.
@@ -108,54 +107,75 @@ License:     Apache 2.0
     msgfiles is not that.
     It is all about locality, and simplicity.
     Your home, your work, your dorm.
+    Run the server piece somewhere the people you care about can access,
+    then everybody runs the client, and everybody can easily send files to each other.
 </p>
 
 <h2>msgfiles - The Client App</h2>
 <p>
-    Send or Recv
+    Config:
+    server IP:port
+    from name
 
-    Send: from, to, message, files, password
-        build msg header, including original filenames
-        ZIP files with password
-        send JSON request
-        upload file
-        receive ticket
-        display ticket with button to Copy it
+    Send:
+    prompt for:
+        to name
+        message
+        files and folders to send
+        password for send
+    build ZIP file with password
+    build msg header JSON
+    connect to server
+    send request with header and file
+    receive ticket
+    display ticket, selectable, button to copy to clipboard
 
-    Receive: ticket
-        send ticket to server
-        display msg metadata
-        confirm downloading files
-        download ZIP
-        prompt for ZIP password
-        prompt for folder to extract to
-        unzip
+    Receive:
+    ticket, password
+    send ticket to server
+    display msg metadata
+    confirm download
+    prompt for ZIP password
+    prompt for folder to extract to
+    download ZIP
+    unzip
 </p>
 
 <h2>msgfilesd - The Server App</h2>
 <p>
-    Port
+    port
+    database
+    directory
+    ===
+    Listens for connections
     Receives connection
     Fires off Task to process connection
     Task 
+        receives line of version, verb, and header length
+        receives header
         send:
-            receives request header
-            creates ticket for request
-            receives file into temp dir
+            creates ticket
+            receives file into directory
             adds record to database
             replies with ticket
         recv:
             receives ticket
             looks up database record
+            sends database record
+            deletes database record and file
+            waits for client for go ahead to download file
             replies with file
-    Background Timer deletes old messages
+            deletes file
+    Background Timer deletes old files, older than X seconds, key not in DB
 </p>
 
 
 <h2>Conclusion and Points of Interest</h2>
 
-<p>What did the reader learn in this article? Did you learn anything interesting/fun/annoying 
-while writing the code? Any gotchas you came across?</p>
+<p>
+    What did the reader learn in this article? Did you learn anything interesting/fun/annoying 
+while writing the code? Any gotchas you came across?
+</p>
 
 
 <!-------------------------------    That's it!   --------------------------->
