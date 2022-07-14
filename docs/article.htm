@@ -96,7 +96,7 @@ License:     Apache 2.0
     So what's this msgfiles business all about then?
     Well, what if what you want to send is not in one of these file castles?
     What if you've just created something new, and want to send it to a friend?
-    There are services for sending attachments of any size.
+    There are services for sending email attachments of any size.
     You could ZIP a large directory of files and send that as a large attachment.
     A CD collection to your sister even.
 </p>
@@ -106,9 +106,8 @@ License:     Apache 2.0
 <p>
     msgfiles is not that.
     It is all about locality, and simplicity.
-    Your home, your work, your dorm.
-    Run the server piece somewhere the people you care about can access,
-    then everybody runs the client, and everybody can easily send files to each other.
+    Run the server piece somewhere the people you care about can access.
+    Then everybody runs the client, and everybody can easily send files to each other.
 </p>
 
 <h2>msgfiles - The Client App</h2>
@@ -131,14 +130,15 @@ License:     Apache 2.0
     display ticket, selectable, button to copy to clipboard
 
     Receive:
-    ticket, password
+    prompt for:
+        ticket
+        password
     send ticket to server
     display msg metadata
     confirm download
-    prompt for ZIP password
     prompt for folder to extract to
     download ZIP
-    unzip
+    unzip with password
 </p>
 
 <h2>msgfilesd - The Server App</h2>
@@ -150,8 +150,8 @@ License:     Apache 2.0
     Listens for connections
     Receives connection
     Fires off Task to process connection
-    Task 
-        receives line of version, verb, and header length
+    Connection task 
+        receives header length
         receives header
         send:
             creates ticket
@@ -161,12 +161,11 @@ License:     Apache 2.0
         recv:
             receives ticket
             looks up database record
-            sends database record
-            deletes database record and file
+            sends msg info
             waits for client for go ahead to download file
             replies with file
-            deletes file
-    Background Timer deletes old files, older than X seconds, key not in DB
+            deletes database record and file
+    Background Timer deletes data older than X seconds
 </p>
 
 
