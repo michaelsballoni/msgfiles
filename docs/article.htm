@@ -43,18 +43,18 @@ CODE { COLOR: #990000; FONT-FAMILY: "Courier New", Courier, mono; }
     <pre>
 Title:       msgfiles: simple file sending
 Description: A .NET client-server application for sending files over a network
-Abstract:    msgfiles is designed to be set up on a shared network to support users sending files to each other.  Well suitied to homes, schools, and offices, anywhere with connectivity to a common server.  An alternative to using network file sharing or cloud file sharing or sending services, especially for files that should not leave a network, or should not be shared with the entire network.
+Abstract:    msgfiles is designed to be set up on a shared network to support users sending files to each other.  Well suitied to homes, schools, and offices, anywhere with connectivity to a common server.  An alternative to using network file sharing or cloud file sharing or sending services, designed for files that should not leave a network, and should not be shared with the entire network.
 
 Author:      Michael Sydney Balloni
 Email:       balloni.michael@yahoo.com
 
 Language:    C#
-Platform:    Windows
+Platform:    Cross-Platform
 Technology:  .NET
 Topic:       File Sending
 
-Section      Desktop Programming
-SubSection   Win32
+Section      General Programming
+SubSection   Internet
 
 License:     Apache 2.0
 </pre>
@@ -75,11 +75,11 @@ License:     Apache 2.0
 <h2>Introduction</h2>
 <p>
     I worked for a cloud storage .com back in the 2000's,
-    when clouds were just in the sky or on whiteboards.
+    when clouds were in the sky or on whiteboards.
     We called it online file storage.
     You'd upload your files, then you could access them anywhere...
     and send them to your friends.
-    It wasn't file sharing like Napster / Gnutella / Limewire;
+    It wasn't file sharing like Napster;
     you weren't sharing your CD collection with the whole world.
     But you could send your CD collection to your sister.
 </p>
@@ -105,69 +105,40 @@ License:     Apache 2.0
 </p>
 <p>
     msgfiles is not that.
-    It is all about locality, and simplicity.
+    It is all about locality and simplicity.
     Run the server piece somewhere the people you care about can access.
     Then everybody runs the client, and everybody can easily send files to each other.
+    Think of this as an improved, message-based FTP system
 </p>
 
-<h2>msgfiles - The Client App</h2>
+<h2>msgfiles - the client</h2>
 <p>
-    Config:
-    server IP:port
-    from name
-
-    Send:
-    prompt for:
-        to name
-        message
-        files and folders to send
-        password for send
-    build ZIP file with password
-    build msg header JSON
-    connect to server
-    send request with header and file
-    receive ticket
-    display ticket, selectable, button to copy to clipboard
-
-    Receive:
-    prompt for:
-        ticket
-        password
-    send ticket to server
-    display msg metadata
-    confirm download
-    prompt for folder to extract to
-    download ZIP
-    unzip with password
+    When you launch the client you are prompted to log into the server.
+    Think of a server like an FTP server, not like a global service like Dropbox or Google Drive.
+    After you connect, the server sends you an email with a token to paste into the app.
+    Your email address is then verified for sending and receiving messages
 </p>
-
-<h2>msgfilesd - The Server App</h2>
 <p>
-    port
-    database
-    directory
-    ===
-    Listens for connections
-    Receives connection
-    Fires off Task to process connection
-    Connection task 
-        receives header length
-        receives header
-        send:
-            creates ticket
-            receives file into directory
-            adds record to database
-            replies with ticket
-        recv:
-            receives ticket
-            looks up database record
-            sends msg info
-            waits for client for go ahead to download file
-            replies with file
-            deletes database record and file
-    Background Timer deletes data older than X seconds
+    Once connected, the client is like an email application, 
+    listing messages available for download,
+    with buttons for creating a new message and deleting old messages
+</p>
+<p>
+    To create a new message, you are prompted with who to send the message to,
+    the message text to send, the files to send, and the password to encrypt the message with
 </p>
 
+<h2>msgfilesd - the server</h2>
+<p>
+    The server is a TCP connection server,
+    using self-signed certificates and TLS for connection security.
+</p>
+<p>
+    The server authenticates clients at the connection level using security tokens and email
+</p>
+<p>
+    Once the connection is authenticated, clients can ask for message lists, uploads, and downloads
+</p>
 
 <h2>Conclusion and Points of Interest</h2>
 

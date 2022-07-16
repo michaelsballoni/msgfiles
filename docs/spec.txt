@@ -1,27 +1,74 @@
-.NET!
+//
+// Client
+//
+Connect:
+email address
+display name
+server IP:port
+===
+send config to server
+server sends you an email with a login token
+you paste the token into the app, and you're authenticated
 
-client:
-	TcpClient->SslStream tolerating any cert
-	
-	send: <from> <to> <msg> <file path> -> server -> ticket
-	
-	recv: <ticket> -> msg info -> file contents
-	
-server:
-	TcpListener->SslStream w/generated-self-signed cert
-	
+Send:
+to name
+to address
+message
+files and folders to send
+password for security at rest
+===
+build ZIP file with password
+build msg header JSON
+send request to server with header and file
+server generates ticket and stores message
+server sends email to recipieint that message is ready
+
+Inbox:
+message list, newest first
+toolbar: download, delete
+download:
+	send ticket to server
+	server sends file, deletes message and file
+	client:
+		asks for password
+		displays file contents
+		prompts where to save file locally
+		extracts zip
+
+
+//
+// Server
+//
+port
+database
+directory
+===
+create self-signed cert
+===
+Listens for connections
+Receives connection
+Fires off Task to process connection
+Connection task 
+	auth:
+	receives auth request: display name, email address
+	creates connection token
+	sends email with token
+	receives auth response token, if not match, drops connection
+	===
+	receives header
+	list:
+		returns list of messages for the auth'd user
 	send:
-		creates: ticket: Guid + UtcNow.Ticks + Message Info, all SHA-256'd
-		creates msg: from, to, msg, file info, and ticket
-		create temp directory with ticket name
-		receives file into temp file
-		logs send
-
+		message, to name, to email
+		creates ticket
+		receives file into directory
+		adds record to database
+		sends email to recipient
 	recv:
-		takes ticket
-		looks up message
-		sends message info
-		logs recv
-		waits on client go-ahead
-		opens file and delivers file bytes
-		deletes message
+		receives ticket
+		looks up database record
+		sends msg info
+		waits for client for go ahead to download file
+		replies with file
+		deletes database record and file
+Background thread deletes old messages
