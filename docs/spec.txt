@@ -4,11 +4,12 @@
 Connect:
 email address
 display name
-server IP:port
+server:port
 ===
 send config to server
 server sends you an email with a login token
 you paste the token into the app, and you're authenticated
+sessions keep you logged in while app running, network error tolerant
 
 Send:
 to name
@@ -18,10 +19,11 @@ files and folders to send
 password for security at rest
 ===
 build ZIP file with password
+compute file hash
 build msg header JSON
 send request to server with header and file
 server generates ticket and stores message
-server sends email to recipieint that message is ready
+server sends email to recipient that message is ready
 
 Inbox:
 message list, newest first
@@ -50,20 +52,22 @@ Receives connection
 Fires off Task to process connection
 Connection task 
 	auth:
-	receives auth request: display name, email address
-	creates connection token
-	sends email with token
-	receives auth response token, if not match, drops connection
+	receives auth request: display name, email address, session token
+	if session token missing or not found
+		creates connection token
+		sends email with token
+		receives auth response token, if not match, drops connection
+		replies with session token
 	===
 	receives header
-	list:
-		returns list of messages for the auth'd user
 	send:
-		message, to name, to email
+		to name, to email, message, file checksum
 		creates ticket
 		receives file into directory
 		adds record to database
 		sends email to recipient
+	list:
+		returns list of messages for the auth'd user
 	recv:
 		receives ticket
 		looks up database record

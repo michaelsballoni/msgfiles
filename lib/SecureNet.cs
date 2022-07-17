@@ -6,6 +6,8 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
+using Newtonsoft.Json;
+
 namespace msgfiles
 {
     public static class SecureNet
@@ -27,11 +29,14 @@ namespace msgfiles
             }
         }
 
-        public static async Task<Stream> ConnectToSecureServer(string hostname, int port)
+        public static async Task<Stream> ConnectToSecureServer(string hostname, int port, ILog log)
         {
+            log.Log($"Connecting {hostname} : {port}");
             var client = new TcpClient(hostname, port);
             var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate cert, X509Chain chain, SslPolicyErrors errors) => true);
+            log.Log($"Authenticating {hostname} : {port}");
             await stream.AuthenticateAsClientAsync(hostname).ConfigureAwait(false);
+            log.Log($"Ready {hostname} : {port}");
             return stream;
         }
 
@@ -42,30 +47,52 @@ namespace msgfiles
             return stream;
         }
 
-        public static async Task<string> ReadHeaderAsync(Stream stream, int maxHeaderSize)
+        public static async Task SendObjectAsync(Stream stream, object obj)
+        {
+            string auth_info_json = JsonConvert.SerializeObject(obj);
+            await SendHeaderAsync(stream, auth_info_json).ConfigureAwait(false);
+        }
+
+        public static async Task SendHeaderAsync(Stream stream, string header)
+        {
+            byte[] header_bytes = Encoding.UTF8.GetBytes(header);
+            if (header_bytes.Length > 64 * 1024)
+                throw new Exception("Too much to send");
+
+            byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(header_bytes.Length));
+            await stream.WriteAsync(num_bytes, 0, num_bytes.Length).ConfigureAwait(false);
+            await stream.WriteAsync(header_bytes, 0, header_bytes.Length).ConfigureAwait(false);
+        }
+
+        public static async Task<T> ReceiveObjectAsync<T>(Stream stream)
+        {
+            string header = await SecureNet.ReadHeaderAsync(stream);
+            return (T)JsonConvert.DeserializeObject<T>(header);
+        }
+
+        public static async Task<string> ReadHeaderAsync(Stream stream)
         {
             byte[] bytes = new byte[4];
             int read = await stream.ReadAsync(bytes, 0, 4).ConfigureAwait(false);
-            if (read != 4)
-                return "";
+            if (read == 0)
+                throw new Exception("Connection closed");
 
-            int num = BitConverter.ToInt32(bytes, 0);
-            num = IPAddress.NetworkToHostOrder(num);
-            if (num > maxHeaderSize)
-                return "";
+            int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(bytes, 0));
+            if (bytes_length > 64 * 1024)
+                throw new Exception("Too much to read");
 
-            MemoryStream header_buffer = new MemoryStream(num);
+            byte[] header_bytes = new byte[bytes_length];
             int read_yet = 0;
-            while (read_yet < num)
+            while (read_yet < bytes_length)
             {
-                int to_read = num - read_yet;
-                int new_read = await stream.ReadAsync(header_buffer.GetBuffer(), read_yet, to_read).ConfigureAwait(false);
+                int to_read = bytes_length - read_yet;
+                int new_read = await stream.ReadAsync(header_bytes, read_yet, to_read).ConfigureAwait(false);
                 if (new_read <= 0)
-                    return "";
+                    throw new Exception("Connection closed");
                 else
                     read_yet += new_read;
             }
-            return Encoding.UTF8.GetString(header_buffer.GetBuffer(), 0, num);
+            return Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
         }
     }
 }

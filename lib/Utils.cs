@@ -5,6 +5,11 @@ namespace msgfiles
 {
     public static class Utils
     {
+        public static string GenToken()
+        {
+            return Utils.Hash256Str(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);
+        }
+
         public static string Hash256Str(string str)
         {
             using (SHA256 hasher = SHA256.Create())
