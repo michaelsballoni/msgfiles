@@ -23,5 +23,16 @@ namespace msgfiles
                 builder.Append(bytes[i].ToString("x2"));
             return builder.ToString();
         }
+
+        public static void NormalizeDict(Dictionary<string, string> dict, IEnumerable<string> keys)
+        {
+            foreach (string key in keys)
+            {
+                if (!dict.ContainsKey(key))
+                    dict.Add(key, "");
+                else
+                    dict[key] = dict[key].Trim();
+            }
+        }
     }
 }

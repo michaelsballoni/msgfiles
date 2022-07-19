@@ -12,11 +12,9 @@ namespace msgfiles
 {
     public class Server : IDisposable
     {
-        public Server(ILog log, ITokenSender tokenSender, IAppOperator appOperator, int port, string hostname)
+        public Server(IApp app, int port, string hostname)
         {
-            m_log = log;
-            m_tokenSender = tokenSender;
-            m_operator = appOperator;
+            m_app = app;
 
             m_port = port;
             m_listener = new TcpListener(IPAddress.Loopback, m_port);
@@ -28,12 +26,13 @@ namespace msgfiles
             Stop();
         }
 
-        public void AcceptConnections()
+        public void Accept()
         {
             try
             {
                 m_listener.Start();
                 Ready = true;
+                m_app.Log("Listening: Started");
                 while (true)
                 {
                     TcpClient new_client = m_listener.AcceptTcpClient();
@@ -48,6 +47,7 @@ namespace msgfiles
             finally
             {
                 m_stopped = true;
+                m_app.Log("Listening: Stopped");
             }
         }
 
@@ -58,7 +58,7 @@ namespace msgfiles
             if (!m_keepRunning)
                 return;
 
-            m_log.Log("Stop: Submitting poison pill");
+            m_app.Log("Stop: Submitting poison pill");
             m_keepRunning = false;
             try
             {
@@ -67,11 +67,11 @@ namespace msgfiles
             }
             catch { }
 
-            m_log.Log("Stop: Waiting on stop");
+            m_app.Log("Stop: Waiting on stop");
             while (!m_stopped)
                 Thread.Sleep(100);
 
-            m_log.Log("Stop: Closing connections");
+            m_app.Log("Stop: Closing connections");
             List<TcpClient> clients = new List<TcpClient>(m_clients);
             foreach (var client in clients)
             {
@@ -82,7 +82,7 @@ namespace msgfiles
                 catch { }
             }
 
-            m_log.Log("Stop: Waiting on connections");
+            m_app.Log("Stop: Waiting on connections");
             while (true)
             {
                 lock (m_clients)
@@ -92,7 +92,7 @@ namespace msgfiles
                 }
                 Thread.Sleep(100);
             }
-            m_log.Log("Stop: All done");
+            m_app.Log("Stop: All done");
         }
 
         private async Task HandleClientAsync(TcpClient client)
@@ -105,33 +105,36 @@ namespace msgfiles
                 using (Stream stream = await SecureNet.SecureRemoteConnectionAsync(client, m_cert).ConfigureAwait(false))
                 {
                     LogClient(client, "Auth info");
-                    AuthInfo auth_info = await SecureNet.ReceiveObjectAsync<AuthInfo>(stream).ConfigureAwait(false);
-                    auth_info.Normalize();
+                    var auth_info = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
+                    Utils.NormalizeDict(auth_info, new[] { "display", "email", "session" });
+                    if (string.IsNullOrEmpty(auth_info["display"]) || string.IsNullOrEmpty(auth_info["email"]))
+                        throw new Exception("Auth info missing fields");
 
                     Session session = null;
-                    if (!string.IsNullOrWhiteSpace(auth_info.SessionToken))
-                        session = m_operator.GetSession(auth_info);
+                    if (!string.IsNullOrEmpty(auth_info["session"]))
+                        session = m_app.GetSession(auth_info);
 
                     if (session == null)
                     {
                         LogClient(client, "Token send");
                         string challenge_token = Utils.GenToken();
-                        m_tokenSender.SendToken(challenge_token);
+                        m_app.SendToken(auth_info["email"], challenge_token);
 
                         LogClient(client, "Auth submit");
-                        AuthSubmit auth_submit = await SecureNet.ReceiveObjectAsync<AuthSubmit>(stream).ConfigureAwait(false);
-                        if (auth_submit.ChallengeToken != challenge_token)
+                        var auth_submit = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
+                        Utils.NormalizeDict(auth_submit, new[] { "challenge" });
+                        if (auth_submit["challenge"] != challenge_token)
                         {
                             LogClient(client, "Incorrect auth submit");
                             return;
                         }
 
                         LogClient(client, "Session create");
-                        session = m_operator.CreateSession(auth_info);
+                        session = m_app.CreateSession(auth_info);
                     }
 
-                    AuthResponse auth_response = new AuthResponse() { SessionToken = session.Token };
-                    await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
+                    var auth_response = new Dictionary<string, string>() { { "session", session.token } };
+                    await SecureNet.SendHeadersAsync(stream, auth_response).ConfigureAwait(false);
 
                     // FORNOW - Handle connection operations here
                 }
@@ -150,12 +153,10 @@ namespace msgfiles
 
         private void LogClient(TcpClient client, string message)
         {
-            m_log.Log($"{client.Client.RemoteEndPoint}: {message}");
+            m_app.Log($"{client.Client.RemoteEndPoint}: {message}");
         }
 
-        private ILog m_log;
-        private ITokenSender m_tokenSender;
-        private IAppOperator m_operator;
+        private IApp m_app;
 
         private int m_port;
         private TcpListener m_listener;

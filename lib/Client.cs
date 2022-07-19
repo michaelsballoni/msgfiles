@@ -8,46 +8,73 @@ namespace msgfiles
 {
     public class Client : IDisposable
     {
-        public Client(ILog log)
+        public Client(IApp app)
         {
-            m_log = log;
+            m_app = app;
         }
 
         public void Dispose()
         {
-            DisconnectAsync();
+            Disconnect();
         }
 
         public async Task BeginConnectAsync(string hostname, int port, string displayName, string email)
         {
-            m_stream = await SecureNet.ConnectToSecureServer(hostname, port, m_log).ConfigureAwait(false);
+            m_app.Log($"Connecting {hostname} : {port}");
+            var client = new TcpClient(hostname, port);
 
-            AuthInfo auth_info = new AuthInfo() { Display = displayName, Email = email, SessionToken = m_session };
-            await SecureNet.SendObjectAsync(m_stream, auth_info).ConfigureAwait(false);
+            m_app.Log($"Authenticating {hostname} : {port}");
+            m_stream = await SecureNet.ConnectToSecureServer(client).ConfigureAwait(false);
+
+            var auth_info =
+                new Dictionary<string, string>()
+                {
+                    { "display", displayName },
+                    { "email", email },
+                    { "session", m_session }
+                };
+            await SecureNet.SendHeadersAsync(m_stream, auth_info).ConfigureAwait(false);
         }
 
         public async Task CompleteConnectAsync()
         {
-            AuthSubmit auth_submit = new AuthSubmit() { ChallengeToken = ChallengeToken };
-            await SecureNet.SendObjectAsync(m_stream, auth_submit).ConfigureAwait(false);
+            var auth_submit = new Dictionary<string, string>() { { "challenge", ChallengeToken } };
+            await SecureNet.SendHeadersAsync(m_stream, auth_submit).ConfigureAwait(false);
 
-            AuthResponse auth_response = await SecureNet.ReceiveObjectAsync<AuthResponse>(m_stream).ConfigureAwait(false);
-            m_session = auth_response.SessionToken;
+            var auth_response = await SecureNet.ReadHeadersAsync(m_stream).ConfigureAwait(false);
+            m_session = auth_response["session"];
         }
 
-        public async Task DisconnectAsync()
+        public void Disconnect()
         {
-            if (m_stream != null)
+            try
             {
-                m_stream.Dispose();
-                m_stream = null;
+                if (m_stream != null)
+                {
+                    m_stream.Dispose();
+                }
             }
+            catch { }
+            m_stream = null;
+
+            try
+            {
+                if (m_client != null)
+                {
+                    m_client.Dispose();
+                }
+            }
+            catch { }
+            m_client = null;
         }
 
         public string ChallengeToken { get; set; } = "";
 
-        ILog m_log;
+        IApp m_app;
+
         string m_session = "";
+
+        TcpClient m_client = null;
         Stream m_stream = null;
     }
 }

@@ -6,36 +6,30 @@ using NUnit.Framework;
 
 namespace msgfiles
 {
-    public class TestLogger : ILog
+    public class TestApp : IApp
     {
         public void Log(string message)
         {
             Console.WriteLine(message);
         }
-    }
 
-    public class TestTokenSender : ITokenSender
-    {
-        public void SendToken(string token)
+        public void SendToken(string email, string token)
         {
             Token = token;
         }
 
+        public Session CreateSession(Dictionary<string, string> auth)
+        {
+            m_session = new Session() { token = Utils.GenToken(), email = auth["email"], display = auth["display"] };
+            return m_session;
+        }
+
+        public Session GetSession(Dictionary<string, string> auth)
+        {
+            return m_session;
+        }
+
         public string Token = "";
-    }
-
-    public class TestAppOperator : IAppOperator
-    {
-        public Session CreateSession(AuthInfo auth)
-        {
-            m_session = new Session() { Token = Utils.GenToken(), Email = auth.Email };
-            return m_session;
-        }
-
-        public Session GetSession(AuthInfo auth)
-        {
-            return m_session;
-        }
 
         private Session m_session = null;
     }
@@ -45,10 +39,8 @@ namespace msgfiles
         [Test]
         public void TestServer()
         {
-            ILog logger = new TestLogger();
-            ITokenSender tokenSender = new TestTokenSender();
-            IAppOperator appOperator = new TestAppOperator();
-            using (Server server = new Server(logger, tokenSender, appOperator, 9914, "test.msgfiles.io"))
+            var app = new TestApp();
+            using (Server server = new Server(app, 9914, "test.msgfiles.io"))
             {
                 new Thread(Accepter).Start(server);
                 while (!server.Ready)
@@ -58,30 +50,28 @@ namespace msgfiles
 
         public void TestClientServerConnect()
         {
-            var logger = new TestLogger();
-            var tokenSender = new TestTokenSender();
-            var appOperator = new TestAppOperator();
-            using (Server server = new Server(logger, tokenSender, appOperator, 9914, "test.msgfiles.io"))
+            var app = new TestApp();
+            using (Server server = new Server(app, 9914, "test.msgfiles.io"))
             {
                 new Thread(Accepter).Start(server);
                 while (!server.Ready)
                     Thread.Sleep(100);
 
-                using (Client client = new Client(logger))
+                using (Client client = new Client(app))
                 {
                     client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Wait();
-                    while (string.IsNullOrWhiteSpace(tokenSender.Token))
+                    while (string.IsNullOrWhiteSpace(app.Token))
                         Thread.Sleep(100);
 
                     client.CompleteConnectAsync().Wait();
-                    client.DisconnectAsync().Wait();
+                    client.Disconnect();
 
                     client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Wait();
-                    while (string.IsNullOrWhiteSpace(tokenSender.Token))
+                    while (string.IsNullOrWhiteSpace(app.Token))
                         Thread.Sleep(100);
 
                     client.CompleteConnectAsync().Wait();
-                    client.DisconnectAsync().Wait();
+                    client.Disconnect();
                 }
             }
         }
@@ -89,7 +79,7 @@ namespace msgfiles
         private void Accepter(object obj)
         {
             Server server = (Server)obj;
-            server.AcceptConnections();
+            server.Accept();
         }
     }
 }
