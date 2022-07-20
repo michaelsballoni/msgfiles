@@ -1,2 +1,2 @@
 # msgfiles
-A file storage and delivery system
+A file delivery system, somewhere between email and FTP
