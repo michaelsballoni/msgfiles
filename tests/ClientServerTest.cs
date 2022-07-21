@@ -6,14 +6,24 @@ using NUnit.Framework;
 
 namespace msgfiles
 {
-    public class TestApp : IApp
+    public class TestClientApp : IClientApp
+    {
+        public bool Cancelled { get { return false; } }
+
+        public void Log(string message)
+        {
+            Console.WriteLine(message);
+        }
+    }
+
+    public class TestServerApp : IServerApp
     {
         public void Log(string message)
         {
             Console.WriteLine(message);
         }
 
-        public void SendToken(string email, string token)
+        public void SendChallengeToken(string email, string token)
         {
             Token = token;
         }
@@ -39,7 +49,7 @@ namespace msgfiles
         [Test]
         public void TestServer()
         {
-            var app = new TestApp();
+            var app = new TestServerApp();
             using (Server server = new Server(app, 9914, "test.msgfiles.io"))
             {
                 new Thread(Accepter).Start(server);
@@ -50,34 +60,39 @@ namespace msgfiles
 
         public void TestClientServerConnect()
         {
-            var app = new TestApp();
-            using (Server server = new Server(app, 9914, "test.msgfiles.io"))
+            var client_app = new TestClientApp();
+            var server_app = new TestServerApp();
+            using (Server server = new Server(server_app, 9914, "test.msgfiles.io"))
             {
                 new Thread(Accepter).Start(server);
                 while (!server.Ready)
                     Thread.Sleep(100);
 
-                using (Client client = new Client(app))
+                using (Client client = new Client(client_app))
                 {
-                    client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Wait();
-                    while (string.IsNullOrWhiteSpace(app.Token))
+                    bool challenge_required = 
+                        client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Result;
+                    Assert.IsTrue(challenge_required);
+                    while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
-
+                    client.ContinueConnectAsync(server_app.Token).Wait();
                     client.CompleteConnectAsync().Wait();
                     client.Disconnect();
 
-                    client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Wait();
-                    while (string.IsNullOrWhiteSpace(app.Token))
-                        Thread.Sleep(100);
-
+                    challenge_required =
+                        client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Result;
+                    Assert.IsTrue(!challenge_required);
                     client.CompleteConnectAsync().Wait();
                     client.Disconnect();
                 }
             }
         }
 
-        private void Accepter(object obj)
+        private void Accepter(object? obj)
         {
+            if (obj == null)
+                throw new Exception("Accepter arg is null");
+
             Server server = (Server)obj;
             server.Accept();
         }

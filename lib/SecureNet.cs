@@ -18,34 +18,32 @@ namespace msgfiles
         {
             using (RSA rsa = RSA.Create(4096))
             {
-                var sanBuilder = new SubjectAlternativeNameBuilder();
-                sanBuilder.AddDnsName(hostname);
-
                 var distinguishedName = new X500DistinguishedName($"CN={hostname}");
                 var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-
-                request.CertificateExtensions.Add(sanBuilder.Build());
-
                 var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650)));
                 return new X509Certificate2(certificate.Export(X509ContentType.Pfx, "password"), "password", X509KeyStorageFlags.MachineKeySet);
             }
         }
 
-        public static async Task<Stream> ConnectToSecureServer(TcpClient client)
+        public static async Task<Stream> SecureConnectionToServer(TcpClient client, string hostname)
         {
-            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate cert, X509Chain chain, SslPolicyErrors errors) => true);
-            await stream.AuthenticateAsClientAsync("msgfiles.io").ConfigureAwait(false);
+            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert, X509Chain? chain, SslPolicyErrors errors) => true);
+            await stream.AuthenticateAsClientAsync(hostname).ConfigureAwait(false);
+            if (!stream.IsAuthenticated)
+                throw new Exception("Connection to server not authenticated");
             return stream;
         }
 
-        public async static Task<Stream> SecureRemoteConnectionAsync(TcpClient client, X509Certificate cert)
+        public async static Task<Stream> SecureConnectionFromClient(TcpClient client, X509Certificate cert)
         {
-            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate cert2, X509Chain chain, SslPolicyErrors errors) => true);
+            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert2, X509Chain? chain, SslPolicyErrors errors) => true);
             await stream.AuthenticateAsServerAsync(cert, false, SslProtocols.Tls13, false).ConfigureAwait(false);
+            if (!stream.IsAuthenticated)
+                throw new Exception("Connection from client not authenticated");
             return stream;
         }
 
-        public static async Task SendHeadersAsync(Stream stream, Dictionary<string, string> headers)
+        public static async Task SendObjectAsync<T>(Stream stream, T headers)
         {
             string json = JsonConvert.SerializeObject(headers);
 
@@ -59,6 +57,12 @@ namespace msgfiles
         }
 
         public static async Task<Dictionary<string, string>> ReadHeadersAsync(Stream stream)
+        {
+            return await ReadObjectAsync<Dictionary<string, string>>(stream).ConfigureAwait(false) 
+                ?? new Dictionary<string, string>();
+        }
+
+        public static async Task<T?> ReadObjectAsync<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
             int read = await stream.ReadAsync(num_bytes, 0, 4).ConfigureAwait(false);
@@ -82,7 +86,7 @@ namespace msgfiles
             }
 
             string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
-            return JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+            return JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

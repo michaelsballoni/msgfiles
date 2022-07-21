@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Sockets;
 
 namespace msgfiles
 {
     public class Client : IDisposable
     {
-        public Client(IApp app)
+        public Client(IClientApp app)
         {
             m_app = app;
         }
@@ -18,14 +14,15 @@ namespace msgfiles
             Disconnect();
         }
 
-        public async Task BeginConnectAsync(string hostname, int port, string displayName, string email)
+        public async Task<bool> BeginConnectAsync(string hostname, int port, string displayName, string email)
         {
-            m_app.Log($"Connecting {hostname} : {port}");
+            m_app.Log($"Connecting {hostname} : {port}...");
             var client = new TcpClient(hostname, port);
 
-            m_app.Log($"Authenticating {hostname} : {port}");
-            m_stream = await SecureNet.ConnectToSecureServer(client).ConfigureAwait(false);
+            m_app.Log($"Securing connection...");
+            m_stream = await SecureNet.SecureConnectionToServer(client, hostname).ConfigureAwait(false);
 
+            m_app.Log($"Starting authentication...");
             var auth_info =
                 new Dictionary<string, string>()
                 {
@@ -33,14 +30,30 @@ namespace msgfiles
                     { "email", email },
                     { "session", m_session }
                 };
-            await SecureNet.SendHeadersAsync(m_stream, auth_info).ConfigureAwait(false);
+            await SecureNet.SendObjectAsync(m_stream, auth_info).ConfigureAwait(false);
+
+            var auth_response = await SecureNet.ReadHeadersAsync(m_stream).ConfigureAwait(false);
+            Utils.NormalizeDict(auth_response, new[] { "challenge_required" });
+            string challenge_required_str = auth_response["challenge_required"];
+            bool challenge_required;
+            if (!bool.TryParse(challenge_required_str, out challenge_required))
+                throw new Exception("Invalid server response");
+            else
+                return challenge_required;
+        }
+
+        public async Task ContinueConnectAsync(string challengeToken)
+        {
+            var auth_submit = new Dictionary<string, string>() { { "challenge", challengeToken } };
+            if (m_stream == null)
+                throw new Exception("Not connected");
+            await SecureNet.SendObjectAsync(m_stream, auth_submit).ConfigureAwait(false);
         }
 
         public async Task CompleteConnectAsync()
         {
-            var auth_submit = new Dictionary<string, string>() { { "challenge", ChallengeToken } };
-            await SecureNet.SendHeadersAsync(m_stream, auth_submit).ConfigureAwait(false);
-
+            if (m_stream == null)
+                throw new Exception("Not connected");
             var auth_response = await SecureNet.ReadHeadersAsync(m_stream).ConfigureAwait(false);
             m_session = auth_response["session"];
         }
@@ -68,13 +81,11 @@ namespace msgfiles
             m_client = null;
         }
 
-        public string ChallengeToken { get; set; } = "";
-
-        IApp m_app;
+        IClientApp m_app;
 
         string m_session = "";
 
-        TcpClient m_client = null;
-        Stream m_stream = null;
+        TcpClient? m_client = null;
+        Stream? m_stream = null;
     }
 }

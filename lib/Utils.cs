@@ -19,8 +19,8 @@ namespace msgfiles
         public static string BytesToStr(byte[] bytes)
         {
             StringBuilder builder = new StringBuilder(bytes.Length * 2);
-            for (int i = 0; i < bytes.Length; i++)
-                builder.Append(bytes[i].ToString("x2"));
+            for (int b = 0; b < bytes.Length; ++b)
+                builder.Append(bytes[b].ToString("x2"));
             return builder.ToString();
         }
 

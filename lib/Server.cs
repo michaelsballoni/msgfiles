@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
-
-using Newtonsoft.Json;
 
 namespace msgfiles
 {
     public class Server : IDisposable
     {
-        public Server(IApp app, int port, string hostname)
+        public Server(IServerApp app, int port, string hostname)
         {
             m_app = app;
 
@@ -67,7 +61,7 @@ namespace msgfiles
             }
             catch { }
 
-            m_app.Log("Stop: Waiting on stop");
+            m_app.Log("Stop: Waiting on listening to stop");
             while (!m_stopped)
                 Thread.Sleep(100);
 
@@ -102,7 +96,7 @@ namespace msgfiles
                 LogClient(client, "Securing");
                 lock (m_clients)
                     m_clients.Add(client);
-                using (Stream stream = await SecureNet.SecureRemoteConnectionAsync(client, m_cert).ConfigureAwait(false))
+                using (Stream stream = await SecureNet.SecureConnectionFromClient(client, m_cert).ConfigureAwait(false))
                 {
                     LogClient(client, "Auth info");
                     var auth_info = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
@@ -110,15 +104,20 @@ namespace msgfiles
                     if (string.IsNullOrEmpty(auth_info["display"]) || string.IsNullOrEmpty(auth_info["email"]))
                         throw new Exception("Auth info missing fields");
 
-                    Session session = null;
+                    Session? session = null;
                     if (!string.IsNullOrEmpty(auth_info["session"]))
                         session = m_app.GetSession(auth_info);
+
+                    var auth_init_response =
+                        new Dictionary<string, string>()
+                        { { "challenge_required", (session == null).ToString()} };
+                    await SecureNet.SendObjectAsync(stream, auth_init_response).ConfigureAwait(false);
 
                     if (session == null)
                     {
                         LogClient(client, "Token send");
                         string challenge_token = Utils.GenToken();
-                        m_app.SendToken(auth_info["email"], challenge_token);
+                        m_app.SendChallengeToken(auth_info["email"], challenge_token);
 
                         LogClient(client, "Auth submit");
                         var auth_submit = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
@@ -134,7 +133,7 @@ namespace msgfiles
                     }
 
                     var auth_response = new Dictionary<string, string>() { { "session", session.token } };
-                    await SecureNet.SendHeadersAsync(stream, auth_response).ConfigureAwait(false);
+                    await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
 
                     // FORNOW - Handle connection operations here
                 }
@@ -156,7 +155,7 @@ namespace msgfiles
             m_app.Log($"{client.Client.RemoteEndPoint}: {message}");
         }
 
-        private IApp m_app;
+        private IServerApp m_app;
 
         private int m_port;
         private TcpListener m_listener;
