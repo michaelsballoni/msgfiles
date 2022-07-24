@@ -1,13 +1,19 @@
 ﻿using System.Text;
 using System.Security.Cryptography;
 
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Paddings;
+using Org.BouncyCastle.Crypto.Engines;
+
 namespace msgfiles
 {
     public static class Utils
     {
         public static string GenChallenge()
         {
-            return GenToken().Substring(6).ToUpper();
+            return GenToken().Substring(0, 6).ToUpper();
         }
 
         public static string GenToken()
@@ -17,16 +23,24 @@ namespace msgfiles
 
         public static string Hash256Str(string str)
         {
-            using (SHA256 hasher = SHA256.Create())
-                return BytesToStr(hasher.ComputeHash(Encoding.UTF8.GetBytes(str)));
+            using (var hasher = SHA256.Create())
+                return BytesToHex(hasher.ComputeHash(Encoding.UTF8.GetBytes(str + "some hash is delicious, I must admit")));
         }
 
-        public static string BytesToStr(byte[] bytes)
+        public static string BytesToHex(byte[] bytes)
         {
-            StringBuilder builder = new StringBuilder(bytes.Length * 2);
+            var builder = new StringBuilder(bytes.Length * 2);
             for (int b = 0; b < bytes.Length; ++b)
                 builder.Append(bytes[b].ToString("x2"));
             return builder.ToString();
+        }
+
+        public static byte[] HexToBytes(string hex)
+        {
+            return
+                Enumerable.Range(0, hex.Length / 2)
+                .Select(x => Convert.ToByte(hex.Substring(x * 2, 2), 16))
+                .ToArray();
         }
 
         public static void NormalizeDict(Dictionary<string, string> dict, IEnumerable<string> keys)
@@ -38,6 +52,59 @@ namespace msgfiles
                 else
                     dict[key] = dict[key].Trim();
             }
+        }
+
+        public static Exception SmashExp(Exception exp)
+        {
+            while (exp.InnerException != null)
+                exp = exp.InnerException;
+            return exp;
+        }
+
+        public static string SumExp(Exception exp)
+        {
+            exp = SmashExp(exp);
+            return $"{exp.GetType().FullName}: {exp.Message}";
+        }
+
+        public static string Encrypt(string plainText, string key)
+        {
+            return 
+                BytesToHex
+                (
+                    AES
+                    (
+                        forEncryption: true, 
+                        key: key, 
+                        data: Encoding.UTF8.GetBytes(plainText)
+                    )
+                );
+        }
+
+        public static string Decrypt(string cipherText, string key)
+        {
+            return 
+                Encoding.UTF8.GetString
+                (
+                    AES
+                    (
+                        forEncryption: false, 
+                        key: key, 
+                        data: HexToBytes(cipherText)
+                    )
+                );
+        }
+
+        private static byte[] AES(bool forEncryption, string key, byte[] data)
+        {
+            byte[] hashed_key;
+            using (var hasher = MD5.Create())
+                hashed_key = hasher.ComputeHash(Encoding.UTF8.GetBytes(key + "I like good hash"));
+
+            var cipher = new PaddedBufferedBlockCipher(new AesEngine(), new Pkcs7Padding());
+            cipher.Init(forEncryption, new KeyParameter(hashed_key));
+
+            return cipher.DoFinal(data);
         }
     }
 }

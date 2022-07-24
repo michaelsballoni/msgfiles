@@ -13,7 +13,7 @@
                     email = auth["email"]
                 };
             lock (m_sessions)
-                m_sessions[session_key] = new Session();
+                m_sessions[session_key] = new_session;
             return new_session;
         }
 
@@ -41,7 +41,7 @@
             Console.WriteLine(token);
         }
 
-        // FORNOW - Keep sessions in memory
+        // FORNOW - Sessions should persist
         private Dictionary<string, Session> m_sessions = new Dictionary<string, Session>();
     }
 }

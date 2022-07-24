@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-namespace msgfiles
+﻿namespace msgfiles
 {
     public partial class ConnectForm : Form, IClientApp
     {
@@ -18,15 +8,24 @@ namespace msgfiles
 
             NameTextBox.Text = GlobalState.DisplayName;
             EmailTextBox.Text = GlobalState.Email;
-            ServerTextBox.Text = GlobalState.Server + ":" + GlobalState.Port;
+
+            ServerTextBox.Text = GlobalState.Server;
+            if (!string.IsNullOrEmpty(ServerTextBox.Text) && GlobalState.Port != 9914)
+                ServerTextBox.Text += ":" + GlobalState.Port;
         }
 
-        public bool Cancelled => m_cancelled;
-
+        public bool Cancelled
+        {
+            get
+            {
+                Application.DoEvents();
+                return m_cancelled;
+            }
+        }
         public void Log(string msg)
         {
             Application.DoEvents();
-            ProgressLabel.Text = msg;
+            StatusBarLabel.Text = msg;
         }
 
         private bool m_cancelled = false;
@@ -34,14 +33,16 @@ namespace msgfiles
         private void CancelButton_Click(object sender, EventArgs e)
         {
             m_cancelled = true;
+            DialogResult = DialogResult.Cancel;
             Close();
         }
 
-        private async void ConnectButton_Click(object sender, EventArgs e)
+        private void ConnectButton_Click(object sender, EventArgs e)
         {
             try
             {
                 ConnectButton.Enabled = false;
+                DialogResult = DialogResult.Cancel;
 
                 GlobalState.DisplayName = NameTextBox.Text.Trim();
                 GlobalState.Email = EmailTextBox.Text.Trim();
@@ -50,52 +51,59 @@ namespace msgfiles
                 int colon = GlobalState.Server.IndexOf(':');
                 if (colon > 0)
                 {
-                    if (!int.TryParse(GlobalState.Server.Substring(colon + 1), out GlobalState.Port))
+                    if (!int.TryParse(GlobalState.Server.Substring(colon + 1).Trim(), out GlobalState.Port))
                     {
                         MessageBox.Show("Invalid server:port");
-                        DialogResult = DialogResult.Cancel;
                         return;
                     }
-                    GlobalState.Server = GlobalState.Server.Substring(0, colon);
+                    GlobalState.Server = GlobalState.Server.Substring(0, colon).Trim();
                 }
+
+                GlobalState.SaveSettings();
 
                 using (var client = new Client(this))
                 {
-                    client.SessionToken = GlobalState.SessionToken;
-
                     bool challenged = 
-                        await client.BeginConnectAsync(GlobalState.Server, GlobalState.Port, GlobalState.DisplayName, GlobalState.Email);
+                        client.BeginConnect
+                        (
+                            GlobalState.Server, 
+                            GlobalState.Port, 
+                            GlobalState.DisplayName, 
+                            GlobalState.Email,
+                            GlobalState.SessionToken
+                        );
                     if (Cancelled)
-                    {
-                        DialogResult = DialogResult.Cancel;
                         return;
-                    }
 
-                    if (!challenged)
+                    if (challenged)
                     {
-                        GlobalState.SessionToken = client.SessionToken;
-                        return;
-                    }
+                        StatusBarLabel.Text = "...";
 
-                    var prompt_dialog = new PromptForm("Submit Challenge Response", "Enter the 6-digit code from the email you just got:");
-                    if (prompt_dialog.ShowDialog() != DialogResult.OK)
-                    {
-                        DialogResult = DialogResult.Cancel;
-                        return;
-                    }
+                        var prompt_dialog = new PromptForm("Submit Challenge Response", "Enter the 6-digit code from the email you just got:");
+                        if (prompt_dialog.ShowDialog() != DialogResult.OK)
+                            return;
 
-                    await client.ContinueConnectAsync(prompt_dialog.ResultTextBox.Text);
+                        string response = prompt_dialog.ResultTextBox.Text.Trim();
+                        if (string.IsNullOrEmpty(response))
+                            return;
+
+                        client.ContinueConnect(response);
+                        if (Cancelled)
+                            return;
+                    }
 
                     GlobalState.SessionToken = client.SessionToken;
+                    DialogResult = DialogResult.OK;
+                    Close();
                 }
             }
             catch (Exception exp)
             {
-                MessageBox.Show($"ERROR: {exp.GetType().FullName}: {exp.Message}");
+                MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
             }
             finally
             {
-                ProgressLabel.Text = "";
+                StatusBarLabel.Text = "Ready";
                 ConnectButton.Enabled = true;
             }
         }

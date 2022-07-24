@@ -78,11 +78,15 @@ namespace msgfiles
                 return m_settings[section][name];
         }
 
-        public void Set(string section, string name, string settingValue)
+        public void Set(string section, string name, string? settingValue)
         {
             if (!m_settings.ContainsKey(section))
                 m_settings[section] = new Dictionary<string, string>();
-            m_settings[section][name] = settingValue;
+
+            if (settingValue == null)
+                m_settings[section].Remove(name);
+            else
+                m_settings[section][name] = settingValue;
         }
 
         public List<string> GetSeries(string section, string name)

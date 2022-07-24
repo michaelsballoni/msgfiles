@@ -25,12 +25,12 @@ namespace msgfiles
             }
         }
 
-        public static async Task<Stream> SecureConnectionToServer(TcpClient client, string hostname)
+        public static Stream SecureConnectionToServer(TcpClient client, string hostname)
         {
             var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert, X509Chain? chain, SslPolicyErrors errors) => true);
-            await stream.AuthenticateAsClientAsync(hostname).ConfigureAwait(false);
+            stream.AuthenticateAsClient(hostname);
             if (!stream.IsAuthenticated)
-                throw new Exception("Connection to server not authenticated");
+                throw new NetworkException("Connection to server not authenticated");
             return stream;
         }
 
@@ -39,8 +39,21 @@ namespace msgfiles
             var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert2, X509Chain? chain, SslPolicyErrors errors) => true);
             await stream.AuthenticateAsServerAsync(cert, false, SslProtocols.Tls13, false).ConfigureAwait(false);
             if (!stream.IsAuthenticated)
-                throw new Exception("Connection from client not authenticated");
+                throw new NetworkException("Connection from client not authenticated");
             return stream;
+        }
+
+        public static void SendObject<T>(Stream stream, T headers)
+        {
+            string json = JsonConvert.SerializeObject(headers);
+
+            byte[] json_bytes = Encoding.UTF8.GetBytes(json);
+            if (json_bytes.Length > 64 * 1024)
+                throw new NetworkException("Too much to send");
+
+            byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
+            stream.Write(num_bytes, 0, num_bytes.Length);
+            stream.Write(json_bytes, 0, json_bytes.Length);
         }
 
         public static async Task SendObjectAsync<T>(Stream stream, T headers)
@@ -49,11 +62,42 @@ namespace msgfiles
 
             byte[] json_bytes = Encoding.UTF8.GetBytes(json);
             if (json_bytes.Length > 64 * 1024)
-                throw new Exception("Too much to send");
+                throw new NetworkException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
             await stream.WriteAsync(num_bytes, 0, num_bytes.Length).ConfigureAwait(false);
             await stream.WriteAsync(json_bytes, 0, json_bytes.Length).ConfigureAwait(false);
+        }
+
+        public static T ReadObject<T>(Stream stream)
+        {
+            byte[] num_bytes = new byte[4];
+            int read = stream.Read(num_bytes, 0, 4);
+            if (read == 0)
+                throw new NetworkException("Connection closed");
+
+            int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
+            if (bytes_length > 64 * 1024)
+                throw new NetworkException("Too much to read");
+
+            byte[] header_bytes = new byte[bytes_length];
+            int read_yet = 0;
+            while (read_yet < bytes_length)
+            {
+                int to_read = bytes_length - read_yet;
+                int new_read = stream.Read(header_bytes, read_yet, to_read);
+                if (new_read <= 0)
+                    throw new NetworkException("Connection closed");
+                else
+                    read_yet += new_read;
+            }
+
+            string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
+            var obj = JsonConvert.DeserializeObject<T>(json);
+            if (obj == null)
+                throw new NetworkException("Input did not parse");
+            else
+                return obj;
         }
 
         public static async Task<T> ReadObjectAsync<T>(Stream stream)
@@ -61,11 +105,11 @@ namespace msgfiles
             byte[] num_bytes = new byte[4];
             int read = await stream.ReadAsync(num_bytes, 0, 4).ConfigureAwait(false);
             if (read == 0)
-                throw new Exception("Connection closed");
+                throw new NetworkException("Connection closed");
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
             if (bytes_length > 64 * 1024)
-                throw new Exception("Too much to read");
+                throw new NetworkException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];
             int read_yet = 0;
@@ -74,7 +118,7 @@ namespace msgfiles
                 int to_read = bytes_length - read_yet;
                 int new_read = await stream.ReadAsync(header_bytes, read_yet, to_read).ConfigureAwait(false);
                 if (new_read <= 0)
-                    throw new Exception("Connection closed");
+                    throw new NetworkException("Connection closed");
                 else
                     read_yet += new_read;
             }
@@ -82,7 +126,7 @@ namespace msgfiles
             string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
             var obj = JsonConvert.DeserializeObject<T>(json);
             if (obj == null)
-                throw new InputException("Input did not parse");
+                throw new NetworkException("Input did not parse");
             else
                 return obj;
         }

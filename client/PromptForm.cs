@@ -19,5 +19,17 @@ namespace msgfiles
             Text += title;
             PromptMessageLabel.Text = prompt;
         }
+
+        private void OkButton_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void ReturnButton_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
     }
 }

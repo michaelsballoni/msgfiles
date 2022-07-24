@@ -35,8 +35,10 @@
             this.EmailTextBox = new System.Windows.Forms.TextBox();
             this.ServerTextBox = new System.Windows.Forms.TextBox();
             this.ConnectButton = new System.Windows.Forms.Button();
-            this.CancelButton = new System.Windows.Forms.Button();
-            this.ProgressLabel = new System.Windows.Forms.Label();
+            this.ReturnButton = new System.Windows.Forms.Button();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.StatusBarLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -51,7 +53,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(27, 137);
+            this.label2.Location = new System.Drawing.Point(27, 117);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(88, 41);
             this.label2.TabIndex = 1;
@@ -60,7 +62,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(15, 224);
+            this.label3.Location = new System.Drawing.Point(15, 190);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(100, 41);
             this.label3.TabIndex = 2;
@@ -75,21 +77,21 @@
             // 
             // EmailTextBox
             // 
-            this.EmailTextBox.Location = new System.Drawing.Point(121, 134);
+            this.EmailTextBox.Location = new System.Drawing.Point(121, 114);
             this.EmailTextBox.Name = "EmailTextBox";
             this.EmailTextBox.Size = new System.Drawing.Size(984, 47);
             this.EmailTextBox.TabIndex = 2;
             // 
             // ServerTextBox
             // 
-            this.ServerTextBox.Location = new System.Drawing.Point(121, 206);
+            this.ServerTextBox.Location = new System.Drawing.Point(121, 187);
             this.ServerTextBox.Name = "ServerTextBox";
             this.ServerTextBox.Size = new System.Drawing.Size(984, 47);
             this.ServerTextBox.TabIndex = 3;
             // 
             // ConnectButton
             // 
-            this.ConnectButton.Location = new System.Drawing.Point(798, 302);
+            this.ConnectButton.Location = new System.Drawing.Point(798, 278);
             this.ConnectButton.Name = "ConnectButton";
             this.ConnectButton.Size = new System.Drawing.Size(307, 89);
             this.ConnectButton.TabIndex = 4;
@@ -97,32 +99,42 @@
             this.ConnectButton.UseVisualStyleBackColor = true;
             this.ConnectButton.Click += new System.EventHandler(this.ConnectButton_Click);
             // 
-            // CancelButton
+            // ReturnButton
             // 
-            this.CancelButton.Location = new System.Drawing.Point(15, 302);
-            this.CancelButton.Name = "CancelButton";
-            this.CancelButton.Size = new System.Drawing.Size(307, 89);
-            this.CancelButton.TabIndex = 5;
-            this.CancelButton.Text = "Cancel";
-            this.CancelButton.UseVisualStyleBackColor = true;
-            this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
+            this.ReturnButton.Location = new System.Drawing.Point(27, 278);
+            this.ReturnButton.Name = "ReturnButton";
+            this.ReturnButton.Size = new System.Drawing.Size(307, 89);
+            this.ReturnButton.TabIndex = 5;
+            this.ReturnButton.Text = "Cancel";
+            this.ReturnButton.UseVisualStyleBackColor = true;
+            this.ReturnButton.Click += new System.EventHandler(this.CancelButton_Click);
             // 
-            // ProgressLabel
+            // statusStrip1
             // 
-            this.ProgressLabel.AutoSize = true;
-            this.ProgressLabel.Location = new System.Drawing.Point(361, 326);
-            this.ProgressLabel.Name = "ProgressLabel";
-            this.ProgressLabel.Size = new System.Drawing.Size(0, 41);
-            this.ProgressLabel.TabIndex = 6;
+            this.statusStrip1.ImageScalingSize = new System.Drawing.Size(40, 40);
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.StatusBarLabel});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 388);
+            this.statusStrip1.Name = "statusStrip1";
+            this.statusStrip1.Size = new System.Drawing.Size(1126, 54);
+            this.statusStrip1.TabIndex = 7;
+            this.statusStrip1.Text = "statusStrip1";
+            // 
+            // StatusBarLabel
+            // 
+            this.StatusBarLabel.Name = "StatusBarLabel";
+            this.StatusBarLabel.Size = new System.Drawing.Size(99, 41);
+            this.StatusBarLabel.Text = "Ready";
             // 
             // ConnectForm
             // 
             this.AcceptButton = this.ConnectButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1126, 422);
-            this.Controls.Add(this.ProgressLabel);
-            this.Controls.Add(this.CancelButton);
+            this.CancelButton = this.ReturnButton;
+            this.ClientSize = new System.Drawing.Size(1126, 442);
+            this.Controls.Add(this.statusStrip1);
+            this.Controls.Add(this.ReturnButton);
             this.Controls.Add(this.ConnectButton);
             this.Controls.Add(this.ServerTextBox);
             this.Controls.Add(this.EmailTextBox);
@@ -136,6 +148,8 @@
             this.Name = "ConnectForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Connect";
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -147,10 +161,11 @@
         private Label label2;
         private Label label3;
         private Button ConnectButton;
-        private Button CancelButton;
+        private Button ReturnButton;
         public TextBox NameTextBox;
         public TextBox EmailTextBox;
         public TextBox ServerTextBox;
-        private Label ProgressLabel;
+        private StatusStrip statusStrip1;
+        private ToolStripStatusLabel StatusBarLabel;
     }
 }

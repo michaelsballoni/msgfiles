@@ -31,7 +31,7 @@
             this.AddressCheckListBox = new System.Windows.Forms.CheckedListBox();
             this.OkButton = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.CancelButton = new System.Windows.Forms.Button();
+            this.ReturnButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // AddressCheckListBox
@@ -62,21 +62,21 @@
             // 
             // CancelButton
             // 
-            this.CancelButton.Location = new System.Drawing.Point(12, 726);
-            this.CancelButton.Name = "CancelButton";
-            this.CancelButton.Size = new System.Drawing.Size(188, 58);
-            this.CancelButton.TabIndex = 2;
-            this.CancelButton.Text = "Cancel";
-            this.CancelButton.UseVisualStyleBackColor = true;
+            this.ReturnButton.Location = new System.Drawing.Point(12, 726);
+            this.ReturnButton.Name = "CancelButton";
+            this.ReturnButton.Size = new System.Drawing.Size(188, 58);
+            this.ReturnButton.TabIndex = 2;
+            this.ReturnButton.Text = "Cancel";
+            this.ReturnButton.UseVisualStyleBackColor = true;
             // 
             // AddressBookForm
             // 
             this.AcceptButton = this.OkButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.CancelButton;
+            this.CancelButton = this.ReturnButton;
             this.ClientSize = new System.Drawing.Size(911, 802);
-            this.Controls.Add(this.CancelButton);
+            this.Controls.Add(this.ReturnButton);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.OkButton);
             this.Controls.Add(this.AddressCheckListBox);
@@ -95,6 +95,6 @@
         private CheckedListBox AddressCheckListBox;
         private Button OkButton;
         private Button button1;
-        private Button CancelButton;
+        private Button ReturnButton;
     }
 }

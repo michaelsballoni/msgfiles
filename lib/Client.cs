@@ -14,15 +14,23 @@ namespace msgfiles
             Disconnect();
         }
 
-        public async Task<bool> BeginConnectAsync(string hostname, int port, string displayName, string email)
+        public bool 
+            BeginConnect
+            (
+                string hostname, 
+                int port, 
+                string displayName, 
+                string email, 
+                string session
+            )
         {
             m_app.Log($"Connecting {hostname} : {port}...");
-            var client = new TcpClient(hostname, port);
+            m_client = new TcpClient(hostname, port);
             if (m_app.Cancelled)
                 return false;
 
             m_app.Log($"Securing connection...");
-            m_stream = await SecureNet.SecureConnectionToServer(client, hostname).ConfigureAwait(false);
+            m_stream = SecureNet.SecureConnectionToServer(m_client, hostname);
             if (m_app.Cancelled)
                 return false;
 
@@ -37,17 +45,15 @@ namespace msgfiles
                         {
                             { "display", displayName },
                             { "email", email },
-                            { "session", SessionToken }
+                            { "session", session }
                         }
                 };
-            await SecureNet.SendObjectAsync(m_stream, auth_request).ConfigureAwait(false);
+            SecureNet.SendObject(m_stream, auth_request);
             if (m_app.Cancelled)
                 return false;
 
-            var auth_response = await SecureNet.ReadObjectAsync<ServerResponse>(m_stream).ConfigureAwait(false);
+            var auth_response = SecureNet.ReadObject<ServerResponse>(m_stream);
             m_app.Log($"Server Response: {auth_response.ResponseSummary}");
-            if (m_app.Cancelled)
-                return false;
             switch (auth_response.statusCode)
             {
                 case 200:
@@ -59,8 +65,9 @@ namespace msgfiles
             }
         }
 
-        public async Task ContinueConnectAsync(string challengeToken)
+        public void ContinueConnect(string challengeToken)
         {
+            m_app.Log("Sending challenge response...");
             var auth_submit =
                 new ClientRequest()
                 {
@@ -70,11 +77,13 @@ namespace msgfiles
                 };
             if (m_stream == null)
                 throw new NetworkException("Not connected");
-            await SecureNet.SendObjectAsync(m_stream, auth_submit).ConfigureAwait(false);
-            var auth_response = await SecureNet.ReadObjectAsync<ServerResponse>(m_stream).ConfigureAwait(false);
-            switch (auth_response.BaseCode)
+            SecureNet.SendObject(m_stream, auth_submit);
+
+            var auth_response = SecureNet.ReadObject<ServerResponse>(m_stream);
+            m_app.Log($"Server Response: {auth_response.ResponseSummary}");
+            switch (auth_response.statusCode)
             {
-                case 200: 
+                case 200:
                     SessionToken = auth_response.headers["session"];
                     break;
                 default:

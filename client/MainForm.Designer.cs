@@ -71,6 +71,7 @@
             this.ConnectAsButton.TabIndex = 1;
             this.ConnectAsButton.Text = "Connect As:";
             this.ConnectAsButton.UseVisualStyleBackColor = true;
+            this.ConnectAsButton.Click += new System.EventHandler(this.ConnectAsButton_Click);
             // 
             // ConnectAsLabel
             // 

@@ -7,18 +7,34 @@ namespace msgfiles
             InitializeComponent();
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        private bool Connect()
         {
-            Show();
+            ConnectAsLabel.Text = "...";
 
-            GlobalState.Init();
             ConnectForm dlg = new ConnectForm();
             if (dlg.ShowDialog() != DialogResult.OK)
-            {
-                Close();
-                return;
-            }
+                return false;
+
+            ConnectAsLabel.Text =
+                GlobalState.DisplayName + " <" + GlobalState.Email + "> on " +
+                GlobalState.Server + ":" + GlobalState.Port;
+
+            return true;
         }
 
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            GlobalState.Init();
+
+            if (Connect())
+                Show();
+            else
+                Close();
+        }
+
+        private void ConnectAsButton_Click(object sender, EventArgs e)
+        {
+            Connect();
+        }
     }
 }

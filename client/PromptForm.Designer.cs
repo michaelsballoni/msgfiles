@@ -29,34 +29,36 @@
         private void InitializeComponent()
         {
             this.OkButton = new System.Windows.Forms.Button();
-            this.CancelButton = new System.Windows.Forms.Button();
+            this.ReturnButton = new System.Windows.Forms.Button();
             this.ResultTextBox = new System.Windows.Forms.TextBox();
             this.PromptMessageLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // OkButton
             // 
-            this.OkButton.Location = new System.Drawing.Point(1098, 106);
+            this.OkButton.Location = new System.Drawing.Point(537, 108);
             this.OkButton.Name = "OkButton";
             this.OkButton.Size = new System.Drawing.Size(188, 58);
             this.OkButton.TabIndex = 3;
             this.OkButton.Text = "OK";
             this.OkButton.UseVisualStyleBackColor = true;
+            this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
             // 
-            // CancelButton
+            // ReturnButton
             // 
-            this.CancelButton.Location = new System.Drawing.Point(904, 106);
-            this.CancelButton.Name = "CancelButton";
-            this.CancelButton.Size = new System.Drawing.Size(188, 58);
-            this.CancelButton.TabIndex = 2;
-            this.CancelButton.Text = "Cancel";
-            this.CancelButton.UseVisualStyleBackColor = true;
+            this.ReturnButton.Location = new System.Drawing.Point(343, 108);
+            this.ReturnButton.Name = "ReturnButton";
+            this.ReturnButton.Size = new System.Drawing.Size(188, 58);
+            this.ReturnButton.TabIndex = 2;
+            this.ReturnButton.Text = "Cancel";
+            this.ReturnButton.UseVisualStyleBackColor = true;
+            this.ReturnButton.Click += new System.EventHandler(this.ReturnButton_Click);
             // 
             // ResultTextBox
             // 
             this.ResultTextBox.Location = new System.Drawing.Point(12, 53);
             this.ResultTextBox.Name = "ResultTextBox";
-            this.ResultTextBox.Size = new System.Drawing.Size(1274, 47);
+            this.ResultTextBox.Size = new System.Drawing.Size(713, 47);
             this.ResultTextBox.TabIndex = 1;
             // 
             // PromptMessageLabel
@@ -73,11 +75,11 @@
             this.AcceptButton = this.OkButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.CancelButton;
-            this.ClientSize = new System.Drawing.Size(1298, 178);
+            this.CancelButton = this.ReturnButton;
+            this.ClientSize = new System.Drawing.Size(745, 178);
             this.Controls.Add(this.PromptMessageLabel);
             this.Controls.Add(this.ResultTextBox);
-            this.Controls.Add(this.CancelButton);
+            this.Controls.Add(this.ReturnButton);
             this.Controls.Add(this.OkButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -94,7 +96,7 @@
         #endregion
 
         private Button OkButton;
-        private Button CancelButton;
+        private Button ReturnButton;
         private Label PromptMessageLabel;
         public TextBox ResultTextBox;
     }

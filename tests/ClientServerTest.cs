@@ -71,16 +71,18 @@ namespace msgfiles
                 using (Client client = new Client(client_app))
                 {
                     bool challenge_required = 
-                        client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Result;
+                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io", "");
                     Assert.IsTrue(challenge_required);
                     while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
-                    client.ContinueConnectAsync(server_app.Token).Wait();
+                    client.ContinueConnect(server_app.Token);
+                    Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
 
                     challenge_required =
-                        client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Result;
+                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io", client.SessionToken);
                     Assert.IsTrue(!challenge_required);
+                    Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
                 }
             }
