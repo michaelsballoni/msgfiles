@@ -36,6 +36,7 @@
             this.ServerTextBox = new System.Windows.Forms.TextBox();
             this.ConnectButton = new System.Windows.Forms.Button();
             this.CancelButton = new System.Windows.Forms.Button();
+            this.ProgressLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label1
@@ -81,7 +82,7 @@
             // 
             // ServerTextBox
             // 
-            this.ServerTextBox.Location = new System.Drawing.Point(121, 224);
+            this.ServerTextBox.Location = new System.Drawing.Point(121, 206);
             this.ServerTextBox.Name = "ServerTextBox";
             this.ServerTextBox.Size = new System.Drawing.Size(984, 47);
             this.ServerTextBox.TabIndex = 3;
@@ -94,15 +95,25 @@
             this.ConnectButton.TabIndex = 4;
             this.ConnectButton.Text = "Connect";
             this.ConnectButton.UseVisualStyleBackColor = true;
+            this.ConnectButton.Click += new System.EventHandler(this.ConnectButton_Click);
             // 
             // CancelButton
             // 
-            this.CancelButton.Location = new System.Drawing.Point(485, 302);
+            this.CancelButton.Location = new System.Drawing.Point(15, 302);
             this.CancelButton.Name = "CancelButton";
             this.CancelButton.Size = new System.Drawing.Size(307, 89);
             this.CancelButton.TabIndex = 5;
             this.CancelButton.Text = "Cancel";
             this.CancelButton.UseVisualStyleBackColor = true;
+            this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
+            // 
+            // ProgressLabel
+            // 
+            this.ProgressLabel.AutoSize = true;
+            this.ProgressLabel.Location = new System.Drawing.Point(361, 326);
+            this.ProgressLabel.Name = "ProgressLabel";
+            this.ProgressLabel.Size = new System.Drawing.Size(0, 41);
+            this.ProgressLabel.TabIndex = 6;
             // 
             // ConnectForm
             // 
@@ -110,6 +121,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1126, 422);
+            this.Controls.Add(this.ProgressLabel);
             this.Controls.Add(this.CancelButton);
             this.Controls.Add(this.ConnectButton);
             this.Controls.Add(this.ServerTextBox);
@@ -134,10 +146,11 @@
         private Label label1;
         private Label label2;
         private Label label3;
-        private TextBox NameTextBox;
-        private TextBox EmailTextBox;
-        private TextBox ServerTextBox;
         private Button ConnectButton;
         private Button CancelButton;
+        public TextBox NameTextBox;
+        public TextBox EmailTextBox;
+        public TextBox ServerTextBox;
+        private Label ProgressLabel;
     }
 }

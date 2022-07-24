@@ -18,9 +18,13 @@ namespace msgfiles
         {
             m_app.Log($"Connecting {hostname} : {port}...");
             var client = new TcpClient(hostname, port);
+            if (m_app.Cancelled)
+                return false;
 
             m_app.Log($"Securing connection...");
             m_stream = await SecureNet.SecureConnectionToServer(client, hostname).ConfigureAwait(false);
+            if (m_app.Cancelled)
+                return false;
 
             m_app.Log($"Starting authentication...");
             var auth_request =
@@ -33,13 +37,17 @@ namespace msgfiles
                         {
                             { "display", displayName },
                             { "email", email },
-                            { "session", m_session }
+                            { "session", SessionToken }
                         }
                 };
             await SecureNet.SendObjectAsync(m_stream, auth_request).ConfigureAwait(false);
+            if (m_app.Cancelled)
+                return false;
 
             var auth_response = await SecureNet.ReadObjectAsync<ServerResponse>(m_stream).ConfigureAwait(false);
             m_app.Log($"Server Response: {auth_response.ResponseSummary}");
+            if (m_app.Cancelled)
+                return false;
             switch (auth_response.statusCode)
             {
                 case 200:
@@ -66,8 +74,8 @@ namespace msgfiles
             var auth_response = await SecureNet.ReadObjectAsync<ServerResponse>(m_stream).ConfigureAwait(false);
             switch (auth_response.BaseCode)
             {
-                case 200:
-                    m_session = auth_response.headers["session"];
+                case 200: 
+                    SessionToken = auth_response.headers["session"];
                     break;
                 default:
                     throw auth_response.CreateException();
@@ -97,11 +105,11 @@ namespace msgfiles
             m_client = null;
         }
 
-        IClientApp m_app;
+        private IClientApp m_app;
 
-        string m_session = "";
+        public string SessionToken { get; set; } = "";
 
-        TcpClient? m_client = null;
-        Stream? m_stream = null;
+        private TcpClient? m_client = null;
+        private Stream? m_stream = null;
     }
 }

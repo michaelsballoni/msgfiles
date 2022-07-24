@@ -16,4 +16,8 @@
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\lib\lib.csproj" />
+  </ItemGroup>
+
 </Project>

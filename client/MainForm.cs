@@ -9,7 +9,16 @@ namespace msgfiles
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            // FORNOW - Get the user connected with a valid session token
+            Show();
+
+            GlobalState.Init();
+            ConnectForm dlg = new ConnectForm();
+            if (dlg.ShowDialog() != DialogResult.OK)
+            {
+                Close();
+                return;
+            }
         }
+
     }
 }
