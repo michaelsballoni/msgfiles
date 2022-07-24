@@ -92,7 +92,7 @@
             this.ConnectButton.Name = "ConnectButton";
             this.ConnectButton.Size = new System.Drawing.Size(307, 89);
             this.ConnectButton.TabIndex = 4;
-            this.ConnectButton.Text = "Connect!";
+            this.ConnectButton.Text = "Connect";
             this.ConnectButton.UseVisualStyleBackColor = true;
             // 
             // CancelButton
@@ -122,7 +122,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "ConnectForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Connect";
             this.ResumeLayout(false);
             this.PerformLayout();
