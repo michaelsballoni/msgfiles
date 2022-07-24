@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace client
+namespace msgfiles
 {
     public partial class ConnectForm : Form
     {

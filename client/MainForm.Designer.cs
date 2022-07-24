@@ -1,4 +1,4 @@
-﻿namespace WinFormsApp1
+﻿namespace msgfiles
 {
     partial class MainForm
     {
@@ -107,6 +107,7 @@
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Message Files - Home";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

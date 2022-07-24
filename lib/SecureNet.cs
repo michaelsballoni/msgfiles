@@ -56,13 +56,7 @@ namespace msgfiles
             await stream.WriteAsync(json_bytes, 0, json_bytes.Length).ConfigureAwait(false);
         }
 
-        public static async Task<Dictionary<string, string>> ReadHeadersAsync(Stream stream)
-        {
-            return await ReadObjectAsync<Dictionary<string, string>>(stream).ConfigureAwait(false) 
-                ?? new Dictionary<string, string>();
-        }
-
-        public static async Task<T?> ReadObjectAsync<T>(Stream stream)
+        public static async Task<T> ReadObjectAsync<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
             int read = await stream.ReadAsync(num_bytes, 0, 4).ConfigureAwait(false);
@@ -86,7 +80,11 @@ namespace msgfiles
             }
 
             string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
-            return JsonConvert.DeserializeObject<T>(json);
+            var obj = JsonConvert.DeserializeObject<T>(json);
+            if (obj == null)
+                throw new InputException("Input did not parse");
+            else
+                return obj;
         }
     }
 }

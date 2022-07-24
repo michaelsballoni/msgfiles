@@ -34,14 +34,14 @@ namespace msgfiles
             return m_session;
         }
 
-        public Session GetSession(Dictionary<string, string> auth)
+        public Session? GetSession(Dictionary<string, string> auth)
         {
             return m_session;
         }
 
         public string Token = "";
 
-        private Session m_session = null;
+        private Session? m_session = null;
     }
 
     public class ClientServerTests
@@ -76,13 +76,11 @@ namespace msgfiles
                     while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
                     client.ContinueConnectAsync(server_app.Token).Wait();
-                    client.CompleteConnectAsync().Wait();
                     client.Disconnect();
 
                     challenge_required =
                         client.BeginConnectAsync("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io").Result;
                     Assert.IsTrue(!challenge_required);
-                    client.CompleteConnectAsync().Wait();
                     client.Disconnect();
                 }
             }

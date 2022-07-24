@@ -1,4 +1,4 @@
-namespace WinFormsApp1
+namespace msgfiles
 {
     internal static class Program
     {

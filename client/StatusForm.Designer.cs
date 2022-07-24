@@ -1,4 +1,4 @@
-﻿namespace client
+﻿namespace msgfiles
 {
     partial class StatusForm
     {

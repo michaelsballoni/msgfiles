@@ -5,6 +5,11 @@ namespace msgfiles
 {
     public static class Utils
     {
+        public static string GenChallenge()
+        {
+            return GenToken().Substring(6).ToUpper();
+        }
+
         public static string GenToken()
         {
             return Utils.Hash256Str(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);

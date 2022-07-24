@@ -93,47 +93,66 @@ namespace msgfiles
         {
             try
             {
-                LogClient(client, "Securing");
+                LogClient(client, "Securing new connection");
                 lock (m_clients)
                     m_clients.Add(client);
                 using (Stream stream = await SecureNet.SecureConnectionFromClient(client, m_cert).ConfigureAwait(false))
                 {
-                    LogClient(client, "Auth info");
-                    var auth_info = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
-                    Utils.NormalizeDict(auth_info, new[] { "display", "email", "session" });
-                    if (string.IsNullOrEmpty(auth_info["display"]) || string.IsNullOrEmpty(auth_info["email"]))
-                        throw new Exception("Auth info missing fields");
+                    LogClient(client, "Receiving auth request");
+                    var auth_request = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
+                    if (auth_request.verb != "AUTH")
+                        throw new NetworkException("Verb should be AUTH");
+                    Utils.NormalizeDict(auth_request.headers, new[] { "display", "email", "session" });
+                    if
+                    (
+                        string.IsNullOrEmpty(auth_request.headers["display"])
+                        ||
+                        string.IsNullOrEmpty(auth_request.headers["email"])
+                    )
+                    {
+                        throw new Exception("Auth request missing fields");
+                    }
 
                     Session? session = null;
-                    if (!string.IsNullOrEmpty(auth_info["session"]))
-                        session = m_app.GetSession(auth_info);
-
-                    var auth_init_response =
-                        new Dictionary<string, string>()
-                        { { "challenge_required", (session == null).ToString()} };
-                    await SecureNet.SendObjectAsync(stream, auth_init_response).ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(auth_request.headers["session"]))
+                        session = m_app.GetSession(auth_request.headers);
+                    if (session != null && session.email != auth_request.headers["email"])
+                        throw new Exception("Session email does not match auth request");
 
                     if (session == null)
                     {
-                        LogClient(client, "Token send");
-                        string challenge_token = Utils.GenToken();
-                        m_app.SendChallengeToken(auth_info["email"], challenge_token);
+                        LogClient(client, "Sending challenge");
+                        string challenge_token = Utils.GenChallenge();
+                        m_app.SendChallengeToken(auth_request.headers["email"], challenge_token);
 
-                        LogClient(client, "Auth submit");
-                        var auth_submit = await SecureNet.ReadHeadersAsync(stream).ConfigureAwait(false);
-                        Utils.NormalizeDict(auth_submit, new[] { "challenge" });
-                        if (auth_submit["challenge"] != challenge_token)
-                        {
-                            LogClient(client, "Incorrect auth submit");
-                            return;
-                        }
+                        var auth_challenge =
+                            new ServerResponse()
+                            {
+                                statusCode = 401,
+                                statusMessage = "Challenge Response Required"
+                            };
+                        await SecureNet.SendObjectAsync(stream, auth_challenge).ConfigureAwait(false);
 
-                        LogClient(client, "Session create");
-                        session = m_app.CreateSession(auth_info);
+                        LogClient(client, "Receiving challenge response");
+                        var auth_challenge_response = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
+                        Utils.NormalizeDict(auth_challenge_response.headers, new[] { "challenge" });
+                        if (auth_challenge_response.headers["challenge"] != challenge_token)
+                            throw new Exception("Incorrect challenget response");
+
+                        LogClient(client, "Creating session");
+                        session = m_app.CreateSession(auth_request.headers);
+
+                        LogClient(client, "Sending session");
+                        var auth_response =
+                            new ServerResponse()
+                            {
+                                version = 1,
+                                statusCode = 200,
+                                statusMessage = "OK",
+                                headers = new Dictionary<string, string>() { { "session", session.token } }
+                            };
+                        await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
                     }
-
-                    var auth_response = new Dictionary<string, string>() { { "session", session.token } };
-                    await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
 
                     // FORNOW - Handle connection operations here
                 }

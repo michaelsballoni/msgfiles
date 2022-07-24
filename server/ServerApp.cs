@@ -19,7 +19,7 @@
 
         public Session? GetSession(Dictionary<string, string> auth)
         {
-            Session session;
+            Session? session;
             lock (m_sessions)
             {
                 if (m_sessions.TryGetValue(auth["session"], out session))
