@@ -14,23 +14,28 @@ namespace msgfiles
             Disconnect();
         }
 
+        /// <summary>
+        /// Start a connection with the server
+        /// </summary>
+        /// <returns>true if server is challenging client, false if ready to process</returns>
         public bool 
             BeginConnect
             (
-                string hostname, 
-                int port, 
+                string serverHostname, 
+                int serverPort, 
                 string displayName, 
-                string email, 
-                string session
+                string email
             )
         {
-            m_app.Log($"Connecting {hostname} : {port}...");
-            m_client = new TcpClient(hostname, port);
+            Disconnect();
+
+            m_app.Log($"Connecting {serverHostname} : {serverPort}...");
+            m_client = new TcpClient(serverHostname, serverPort);
             if (m_app.Cancelled)
                 return false;
 
             m_app.Log($"Securing connection...");
-            m_stream = SecureNet.SecureConnectionToServer(m_client, hostname);
+            m_stream = SecureNet.SecureConnectionToServer(m_client, serverHostname);
             if (m_app.Cancelled)
                 return false;
 
@@ -45,7 +50,7 @@ namespace msgfiles
                         {
                             { "display", displayName },
                             { "email", email },
-                            { "session", session }
+                            { "session", SessionToken }
                         }
                 };
             SecureNet.SendObject(m_stream, auth_request);
@@ -57,6 +62,7 @@ namespace msgfiles
             switch (auth_response.statusCode)
             {
                 case 200:
+                    SessionToken = auth_response.headers["session"];
                     return false;
                 case 401:
                     return true;

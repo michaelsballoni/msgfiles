@@ -25,11 +25,7 @@ namespace msgfiles
         private void MainForm_Load(object sender, EventArgs e)
         {
             GlobalState.Init();
-
-            if (Connect())
-                Show();
-            else
-                Close();
+            Connect();
         }
 
         private void ConnectAsButton_Click(object sender, EventArgs e)

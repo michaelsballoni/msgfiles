@@ -22,14 +22,24 @@
             Session? session;
             lock (m_sessions)
             {
-                if (m_sessions.TryGetValue(auth["session"], out session))
+                if (m_sessions.TryGetValue(auth["session"], out session) && session != null)
                     return session;
                 else
                     return null;
             }
         }
 
-        public void Log(string msg)
+        public bool DropSession(Dictionary<string, string> auth)
+        {
+            if (!auth.ContainsKey("session") || string.IsNullOrWhiteSpace(auth["session"]))
+                return false;
+
+            lock (m_sessions)
+                return m_sessions.Remove(auth["session"]);
+        }
+
+
+            public void Log(string msg)
         {
             Console.WriteLine(msg);
         }

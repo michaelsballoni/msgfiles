@@ -31,5 +31,10 @@ namespace msgfiles
             DialogResult = DialogResult.Cancel;
             Close();
         }
+
+        private void PromptForm_Load(object sender, EventArgs e)
+        {
+            PromptMessageLabel.Focus();
+        }
     }
 }

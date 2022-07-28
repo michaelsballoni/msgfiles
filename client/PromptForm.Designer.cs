@@ -36,7 +36,8 @@
             // 
             // OkButton
             // 
-            this.OkButton.Location = new System.Drawing.Point(537, 108);
+            this.OkButton.DialogResult = System.Windows.Forms.DialogResult.OK;
+            this.OkButton.Location = new System.Drawing.Point(351, 106);
             this.OkButton.Name = "OkButton";
             this.OkButton.Size = new System.Drawing.Size(188, 58);
             this.OkButton.TabIndex = 3;
@@ -46,7 +47,8 @@
             // 
             // ReturnButton
             // 
-            this.ReturnButton.Location = new System.Drawing.Point(343, 108);
+            this.ReturnButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.ReturnButton.Location = new System.Drawing.Point(545, 108);
             this.ReturnButton.Name = "ReturnButton";
             this.ReturnButton.Size = new System.Drawing.Size(188, 58);
             this.ReturnButton.TabIndex = 2;
@@ -58,7 +60,7 @@
             // 
             this.ResultTextBox.Location = new System.Drawing.Point(12, 53);
             this.ResultTextBox.Name = "ResultTextBox";
-            this.ResultTextBox.Size = new System.Drawing.Size(713, 47);
+            this.ResultTextBox.Size = new System.Drawing.Size(721, 47);
             this.ResultTextBox.TabIndex = 1;
             // 
             // PromptMessageLabel
@@ -88,6 +90,7 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - ";
+            this.Load += new System.EventHandler(this.PromptForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

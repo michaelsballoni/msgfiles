@@ -39,6 +39,17 @@ namespace msgfiles
             return m_session;
         }
 
+        public bool DropSession(Dictionary<string, string> auth)
+        {
+            if (m_session != null && auth.ContainsKey("session"))
+            {
+                m_session = null;
+                return true;
+            }
+            else
+                return false;
+        }
+
         public string Token = "";
 
         private Session? m_session = null;
@@ -71,7 +82,7 @@ namespace msgfiles
                 using (Client client = new Client(client_app))
                 {
                     bool challenge_required = 
-                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io", "");
+                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io");
                     Assert.IsTrue(challenge_required);
                     while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
@@ -80,7 +91,7 @@ namespace msgfiles
                     client.Disconnect();
 
                     challenge_required =
-                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io", client.SessionToken);
+                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io");
                     Assert.IsTrue(!challenge_required);
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();

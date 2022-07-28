@@ -91,20 +91,27 @@ namespace msgfiles
 
         private async Task HandleClientAsync(TcpClient client)
         {
+            string client_address;
+            {
+                string? client_address_null =
+                    client.Client.RemoteEndPoint == null ? "<unknown>" : client.Client.RemoteEndPoint.ToString();
+                client_address = client_address_null ?? "<null>";
+            }
+
             try
             {
-                LogClient(client, "Securing new connection...");
+                LogClient(client_address, "Securing new connection...");
                 lock (m_clients)
                     m_clients.Add(client);
                 using (Stream stream = await SecureNet.SecureConnectionFromClient(client, m_cert).ConfigureAwait(false))
                 {
                     try
                     {
-                        LogClient(client, "Receiving auth request...");
+                        LogClient(client_address, "Receiving auth request...");
                         var auth_request = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
-                        LogClient(client, "Auth request received.");
+                        LogClient(client_address, "Auth request received.");
                         if (auth_request.verb != "AUTH")
-                            throw new NetworkException("Verb should be AUTH");
+                            throw new InputException("Verb should be AUTH");
                         Utils.NormalizeDict(auth_request.headers, new[] { "display", "email", "session" });
                         if
                         (
@@ -113,7 +120,7 @@ namespace msgfiles
                             string.IsNullOrEmpty(auth_request.headers["email"])
                         )
                         {
-                            throw new NetworkException("Auth request missing fields");
+                            throw new InputException("Auth request missing fields");
                         }
 
                         Session? session = m_app.GetSession(auth_request.headers);
@@ -128,30 +135,17 @@ namespace msgfiles
                             )
                         )
                         {
+                            m_app.DropSession(auth_request.headers);
                             session = null;
                         }
-                        if (session != null)
+                        if (session == null)
                         {
-                            LogClient(client, "Session exists, no need for challenge, sending OK...");
-                            var auth_response =
-                                new ServerResponse()
-                                {
-                                    version = 1,
-                                    statusCode = 200,
-                                    statusMessage = "OK",
-                                    headers = new Dictionary<string, string>()
-                                };
-                            await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
-                            LogClient(client, "OK sent.");
-                        }
-                        else
-                        {
-                            LogClient(client, "Sending challenge token...");
+                            LogClient(client_address, "Sending challenge token...");
                             string challenge_token = Utils.GenChallenge();
                             m_app.SendChallengeToken(auth_request.headers["email"], challenge_token);
-                            LogClient(client, "Challenge token sent.");
+                            LogClient(client_address, "Challenge token sent.");
 
-                            LogClient(client, "Sending challenge response...");
+                            LogClient(client_address, "Sending challenge response...");
                             var auth_challenge =
                                 new ServerResponse()
                                 {
@@ -159,73 +153,72 @@ namespace msgfiles
                                     statusMessage = "Challenge Response Required"
                                 };
                             await SecureNet.SendObjectAsync(stream, auth_challenge).ConfigureAwait(false);
-                            LogClient(client, "Challenge response sent.");
+                            LogClient(client_address, "Challenge response sent.");
 
-                            LogClient(client, "Receiving challenge response...");
+                            LogClient(client_address, "Receiving challenge response...");
                             var auth_challenge_response = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
-                            LogClient(client, "Challenge response received.");
+                            LogClient(client_address, "Challenge response received.");
                             if (auth_challenge_response.verb != "CHALLENGE")
-                                throw new NetworkException("Verb should be CHALLENGE");
+                                throw new InputException("Verb should be CHALLENGE");
                             Utils.NormalizeDict(auth_challenge_response.headers, new[] { "challenge" });
                             if (auth_challenge_response.headers["challenge"] != challenge_token)
-                                throw new NetworkException("Incorrect challenge response");
+                                throw new InputException("Incorrect challenge response");
 
-                            LogClient(client, "Creating session...");
+                            LogClient(client_address, "Creating session...");
                             session = m_app.CreateSession(auth_request.headers);
+                        }
 
-                            LogClient(client, "Sending session...");
-                            var auth_response =
+                        LogClient(client_address, "Sending session...");
+                        var auth_response =
+                            new ServerResponse()
+                            {
+                                version = 1,
+                                statusCode = 200,
+                                statusMessage = "OK",
+                                headers = new Dictionary<string, string>() { { "session", session.token } }
+                            };
+                        await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
+                        LogClient(client_address, "Session sent.  Client authenticated, ready for operations.");
+
+                        while (true)
+                        {
+                            LogClient(client_address, "Receiving request...");
+                            var client_request = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
+                            
+                            // FORNOW - Handle connection operations here
+
+                            var server_response =
                                 new ServerResponse()
                                 {
                                     version = 1,
                                     statusCode = 200,
                                     statusMessage = "OK",
-                                    headers = new Dictionary<string, string>() { { "session", session.token } }
+                                    headers = new Dictionary<string, string>()
                                 };
-                            await SecureNet.SendObjectAsync(stream, auth_response).ConfigureAwait(false);
-                            LogClient(client, "Session sent.");
-                        }
-
-                        LogClient(client, "Client authenticated, ready for operations.");
-                        while (true)
-                        {
-                            LogClient(client, "Receiving request...");
-                            var client_request = await SecureNet.ReadObjectAsync<ClientRequest>(stream).ConfigureAwait(false);
-                            // FORNOW - Handle connection operations here
+                            await SecureNet.SendObjectAsync(stream, server_response).ConfigureAwait(false);
                         }
                     }
                     catch (SocketException)
                     {
-                        LogClient(client, "Socket Exception");
+                        LogClient(client_address, "Socket Exception");
                     }
                     catch (NetworkException exp)
                     {
-                        try
-                        {
-                            LogClient(client, $"{Utils.SumExp(exp)}");
-                            var error_response =
-                                new ServerResponse()
-                                {
-                                    version = 1,
-                                    statusCode = 400,
-                                    statusMessage = exp.Message,
-                                    headers = new Dictionary<string, string>()
-                                };
-                            SecureNet.SendObjectAsync(stream, error_response).Wait();
-                        }
-                        catch { }
+                        LogClient(client_address, $"{Utils.SumExp(exp)}");
                     }
                     catch (Exception exp)
                     {
+                        exp = Utils.SmashExp(exp);
+                        bool is_server_exp = exp is ServerException;
+                        LogClient(client_address, $"{Utils.SumExp(exp)}");
                         try
                         {
-                            LogClient(client, $"{Utils.SumExp(exp)}");
                             var error_response =
                                 new ServerResponse()
                                 {
                                     version = 1,
-                                    statusCode = 500,
-                                    statusMessage = "Internal Server Error",
+                                    statusCode = is_server_exp ? 500 : 400,
+                                    statusMessage = is_server_exp ? "Internal Server Error" : exp.Message,
                                     headers = new Dictionary<string, string>()
                                 };
                             SecureNet.SendObjectAsync(stream, error_response).Wait();
@@ -236,7 +229,7 @@ namespace msgfiles
             }
             catch (Exception exp)
             {
-                LogClient(client, $"HandleClient ERROR: {Utils.SumExp(exp)}");
+                LogClient(client_address, $"HandleClient ERROR: {Utils.SumExp(exp)}");
             }
             finally
             {
@@ -246,9 +239,9 @@ namespace msgfiles
             }
         }
 
-        private void LogClient(TcpClient client, string message)
+        private void LogClient(string clientAddress, string message)
         {
-            m_app.Log($"{client.Client.RemoteEndPoint}: {message}");
+            m_app.Log($"{clientAddress}: {message}");
         }
 
         private IServerApp m_app;

@@ -67,6 +67,16 @@ namespace msgfiles
             return $"{exp.GetType().FullName}: {exp.Message}";
         }
 
+        public static MemoryStream CombineArrays(byte[] array1, byte[] array2)
+        {
+            var stream = new MemoryStream(array1.Length + array2.Length);
+            stream.Write(array1, 0, array1.Length);
+            stream.Write(array2, 0, array2.Length);
+            if (stream.Length > 0)
+                stream.Seek(0, SeekOrigin.Begin);
+            return stream;
+        }
+
         public static string Encrypt(string plainText, string key)
         {
             return 

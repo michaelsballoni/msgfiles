@@ -49,11 +49,12 @@ namespace msgfiles
 
             byte[] json_bytes = Encoding.UTF8.GetBytes(json);
             if (json_bytes.Length > 64 * 1024)
-                throw new NetworkException("Too much to send");
+                throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
-            stream.Write(num_bytes, 0, num_bytes.Length);
-            stream.Write(json_bytes, 0, json_bytes.Length);
+
+            using (var buffer = Utils.CombineArrays(num_bytes, json_bytes))
+                stream.Write(buffer.GetBuffer(), 0, (int)buffer.Length);
         }
 
         public static async Task SendObjectAsync<T>(Stream stream, T headers)
@@ -62,11 +63,12 @@ namespace msgfiles
 
             byte[] json_bytes = Encoding.UTF8.GetBytes(json);
             if (json_bytes.Length > 64 * 1024)
-                throw new NetworkException("Too much to send");
+                throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
-            await stream.WriteAsync(num_bytes, 0, num_bytes.Length).ConfigureAwait(false);
-            await stream.WriteAsync(json_bytes, 0, json_bytes.Length).ConfigureAwait(false);
+
+            using (var buffer = Utils.CombineArrays(num_bytes, json_bytes))
+                await stream.WriteAsync(buffer.GetBuffer(), 0, (int)buffer.Length).ConfigureAwait(false);
         }
 
         public static T ReadObject<T>(Stream stream)
@@ -78,7 +80,7 @@ namespace msgfiles
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
             if (bytes_length > 64 * 1024)
-                throw new NetworkException("Too much to read");
+                throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];
             int read_yet = 0;
@@ -95,7 +97,7 @@ namespace msgfiles
             string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
             var obj = JsonConvert.DeserializeObject<T>(json);
             if (obj == null)
-                throw new NetworkException("Input did not parse");
+                throw new InputException("Input did not parse");
             else
                 return obj;
         }
@@ -109,7 +111,7 @@ namespace msgfiles
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
             if (bytes_length > 64 * 1024)
-                throw new NetworkException("Too much to read");
+                throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];
             int read_yet = 0;
@@ -126,7 +128,7 @@ namespace msgfiles
             string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
             var obj = JsonConvert.DeserializeObject<T>(json);
             if (obj == null)
-                throw new NetworkException("Input did not parse");
+                throw new InputException("Input did not parse");
             else
                 return obj;
         }

@@ -41,61 +41,64 @@
         {
             try
             {
-                ConnectButton.Enabled = false;
-                DialogResult = DialogResult.Cancel;
-
-                GlobalState.DisplayName = NameTextBox.Text.Trim();
-                GlobalState.Email = EmailTextBox.Text.Trim();
-
-                GlobalState.Server = ServerTextBox.Text.Trim();
-                int colon = GlobalState.Server.IndexOf(':');
-                if (colon > 0)
+                do
                 {
-                    if (!int.TryParse(GlobalState.Server.Substring(colon + 1).Trim(), out GlobalState.Port))
+                    ConnectButton.Enabled = false;
+                    DialogResult = DialogResult.Cancel;
+
+                    GlobalState.DisplayName = NameTextBox.Text.Trim();
+                    GlobalState.Email = EmailTextBox.Text.Trim();
+
+                    GlobalState.Server = ServerTextBox.Text.Trim();
+                    int colon = GlobalState.Server.IndexOf(':');
+                    if (colon > 0)
                     {
-                        MessageBox.Show("Invalid server:port");
-                        return;
+                        if (!int.TryParse(GlobalState.Server.Substring(colon + 1).Trim(), out GlobalState.Port))
+                        {
+                            MessageBox.Show("Invalid server:port");
+                            break;
+                        }
+                        GlobalState.Server = GlobalState.Server.Substring(0, colon).Trim();
                     }
-                    GlobalState.Server = GlobalState.Server.Substring(0, colon).Trim();
-                }
 
-                GlobalState.SaveSettings();
+                    GlobalState.SaveSettings();
 
-                using (var client = new Client(this))
-                {
-                    bool challenged = 
-                        client.BeginConnect
-                        (
-                            GlobalState.Server, 
-                            GlobalState.Port, 
-                            GlobalState.DisplayName, 
-                            GlobalState.Email,
-                            GlobalState.SessionToken
-                        );
-                    if (Cancelled)
-                        return;
-
-                    if (challenged)
+                    using (var client = new Client(this))
                     {
-                        StatusBarLabel.Text = "...";
-
-                        var prompt_dialog = new PromptForm("Submit Challenge Response", "Enter the 6-digit code from the email you just got:");
-                        if (prompt_dialog.ShowDialog() != DialogResult.OK)
-                            return;
-
-                        string response = prompt_dialog.ResultTextBox.Text.Trim();
-                        if (string.IsNullOrEmpty(response))
-                            return;
-
-                        client.ContinueConnect(response);
+                        client.SessionToken = GlobalState.SessionToken;
+                        bool challenged =
+                            client.BeginConnect
+                            (
+                                GlobalState.Server,
+                                GlobalState.Port,
+                                GlobalState.DisplayName,
+                                GlobalState.Email
+                            );
                         if (Cancelled)
-                            return;
-                    }
+                            break;
 
-                    GlobalState.SessionToken = client.SessionToken;
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
+                        if (challenged)
+                        {
+                            StatusBarLabel.Text = "...";
+
+                            var prompt_dialog = new PromptForm("Submit Challenge Response", "Enter the 6-digit code from the email you just got:");
+                            if (prompt_dialog.ShowDialog() != DialogResult.OK)
+                                break;
+
+                            string response = prompt_dialog.ResultTextBox.Text.Trim();
+                            if (string.IsNullOrEmpty(response))
+                                break;
+
+                            client.ContinueConnect(response);
+                            if (Cancelled)
+                                break;
+                        }
+
+                        GlobalState.SessionToken = client.SessionToken;
+                        DialogResult = DialogResult.OK;
+                        Close();
+                    }
+                } while (false);
             }
             catch (Exception exp)
             {

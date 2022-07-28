@@ -18,6 +18,7 @@
         // Work with sessions
         Session? GetSession(Dictionary<string, string> auth);
         Session CreateSession(Dictionary<string, string> auth);
+        bool DropSession(Dictionary<string, string> auth);
 
         /* FORNOW
         void StoreMessage(Message msg);

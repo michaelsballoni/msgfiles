@@ -29,6 +29,9 @@ namespace msgfiles
             Assert.AreEqual("bar", dict["foo"]);
             Assert.AreEqual("monkey", dict["blet"]);
 
+            var stream = Utils.CombineArrays(new[] { (byte)'a', (byte)'b', (byte)'c' }, new[] { (byte)'1', (byte)'2', (byte)'3', (byte)'4' });
+            Assert.AreEqual("abc1234", Encoding.ASCII.GetString(stream.ToArray()));
+
             string enc = Utils.Encrypt("foo", "bar");
             string dec = Utils.Decrypt(enc, "bar");
             Assert.IsTrue(enc != "foo");
