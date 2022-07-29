@@ -128,10 +128,8 @@
             // 
             // ConnectForm
             // 
-            this.AcceptButton = this.ConnectButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.ReturnButton;
             this.ClientSize = new System.Drawing.Size(1126, 442);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.ReturnButton);

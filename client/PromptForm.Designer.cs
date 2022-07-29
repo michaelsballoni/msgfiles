@@ -43,7 +43,6 @@
             this.OkButton.TabIndex = 3;
             this.OkButton.Text = "OK";
             this.OkButton.UseVisualStyleBackColor = true;
-            this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
             // 
             // ReturnButton
             // 
@@ -54,7 +53,6 @@
             this.ReturnButton.TabIndex = 2;
             this.ReturnButton.Text = "Cancel";
             this.ReturnButton.UseVisualStyleBackColor = true;
-            this.ReturnButton.Click += new System.EventHandler(this.ReturnButton_Click);
             // 
             // ResultTextBox
             // 
