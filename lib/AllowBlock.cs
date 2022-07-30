@@ -32,14 +32,22 @@ namespace msgfiles
 
             string domain = email.Substring(email.IndexOf('@')).Trim();
 
+            if (m_allowList.Contains(email))
+                return;
+
             if (m_blockList.Contains(email))
                 throw new InputException($"Blocked email: {email}");
+
+            if (m_allowList.Contains(domain))
+                return;
 
             if (m_blockList.Contains(domain))
                 throw new InputException($"Blocked domain: {email}");
 
-            if (m_allowList.Count > 0 && !m_allowList.Contains(email) && !m_allowList.Contains(domain))
+            if (m_allowList.Count > 0)
                 throw new InputException($"Not allowed: {email}");
+
+            // no allow list, not blocked -> allowed
         }
 
         private HashSet<string> m_allowList = new HashSet<string>();

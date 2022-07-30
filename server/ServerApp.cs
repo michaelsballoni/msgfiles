@@ -14,75 +14,49 @@ namespace msgfiles
 
             m_settings = new Settings(Path.Combine(m_thisExeDirPath, "settings.ini"));
 
-            LoadSettings();
-
-            m_settingsWatcher = new FileSystemWatcher();
+            m_settingsWatcher = new FileSystemWatcher(m_thisExeDirPath, "*.ini");
             m_settingsWatcher.Changed += SettingsWatcher_Changed;
             m_settingsWatcher.Created += SettingsWatcher_Changed;
             m_settingsWatcher.Deleted += SettingsWatcher_Changed;
+            SettingsWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
+
+            m_txtFilesWatcher = new FileSystemWatcher(m_thisExeDirPath, "*.txt");
+            m_txtFilesWatcher.Changed += TextWatcher_Changed;
+            m_txtFilesWatcher.Created += TextWatcher_Changed;
+            m_txtFilesWatcher.Deleted += TextWatcher_Changed;
+            TextWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
+
+            m_sessions = new SessionDb(Path.Combine(m_thisExeDirPath, "sessions.db"));
         }
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
         {
-            LoadSettings();
+            m_settings.Load();
         }
 
-        private void LoadSettings()
+        private void TextWatcher_Changed(object sender, FileSystemEventArgs e)
         {
-            try
-            {
-                m_rwSettingsLock.EnterWriteLock();
-                
-                m_settings.Load();
-                
-                m_allowBlock.SetLists
-                (
-                    LoadFileList("allowed.txt"), 
-                    LoadFileList("blocked.txt")
-                );
-            }
-            finally
-            {
-                m_rwSettingsLock.ExitWriteLock();
-            }
+            m_allowBlock.SetLists
+            (
+                LoadFileList("allowed.txt"),
+                LoadFileList("blocked.txt")
+            );
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
         {
             m_allowBlock.EnsureEmailAllowed(auth["email"]);
-
-            string session_key = Utils.GenToken();
-            var new_session =
-                new Session()
-                {
-                    token = session_key,
-                    display = auth["display"],
-                    email = auth["email"]
-                };
-            lock (m_sessions)
-                m_sessions[session_key] = new_session;
-            return new_session;
+            return m_sessions.CreateSession(auth["email"], auth["display"]);
         }
 
         public Session? GetSession(Dictionary<string, string> auth)
         {
-            Session? session;
-            lock (m_sessions)
-            {
-                if (m_sessions.TryGetValue(auth["session"], out session) && session != null)
-                    return session;
-                else
-                    return null;
-            }
+            return m_sessions.GetSession(auth["session"]);
         }
 
         public bool DropSession(Dictionary<string, string> auth)
         {
-            if (!auth.ContainsKey("session") || string.IsNullOrWhiteSpace(auth["session"]))
-                return false;
-
-            lock (m_sessions)
-                return m_sessions.Remove(auth["session"]);
+            return m_sessions.DropSession(auth["session"]);
         }
 
         public void Log(string msg)
@@ -108,14 +82,13 @@ namespace msgfiles
                 return new HashSet<string>();
         }
 
-        // FORNOW - Sessions should persist
-        private Dictionary<string, Session> m_sessions = new Dictionary<string, Session>();
+        private SessionDb m_sessions;
 
         private Settings m_settings;
         private AllowBlock m_allowBlock = new AllowBlock();
 
         private string m_thisExeDirPath;
         private FileSystemWatcher m_settingsWatcher;
-        private ReaderWriterLockSlim m_rwSettingsLock = new ReaderWriterLockSlim();
+        private FileSystemWatcher m_txtFilesWatcher;
     }
 }

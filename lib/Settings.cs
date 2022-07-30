@@ -21,6 +21,9 @@ namespace msgfiles
 
                 m_settings.Clear();
 
+                if (!File.Exists(m_filePath))
+                    return;
+
                 Dictionary<string, string>? cur_dict = null;
                 string[] lines = File.ReadAllLines(m_filePath, Encoding.UTF8);
                 for (int n = 0; n < lines.Length; ++n)
