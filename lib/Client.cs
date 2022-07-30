@@ -31,6 +31,7 @@ namespace msgfiles
 
             m_app.Log($"Connecting {serverHostname} : {serverPort}...");
             m_client = new TcpClient(serverHostname, serverPort);
+            m_client.NoDelay = true;
             if (m_app.Cancelled)
                 return false;
 

@@ -5,8 +5,6 @@
         public PromptForm(string title, string prompt)
         {
             InitializeComponent();
-
-            Text += title;
             PromptMessageLabel.Text = prompt;
         }
 

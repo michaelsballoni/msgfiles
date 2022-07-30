@@ -30,6 +30,9 @@ namespace msgfiles
                 while (true)
                 {
                     TcpClient new_client = m_listener.AcceptTcpClient();
+                    new_client.NoDelay = true;
+                    new_client.ReceiveTimeout = 900 * 1000;
+
                     if (!m_keepRunning)
                         break;
                     else
@@ -57,6 +60,7 @@ namespace msgfiles
             try
             {
                 TcpClient poison_pill = new TcpClient("127.0.0.1", m_port);
+                poison_pill.NoDelay = true;
                 poison_pill.Dispose();
             }
             catch { }
@@ -142,7 +146,12 @@ namespace msgfiles
                         {
                             LogClient(client_address, "Sending challenge token...");
                             string challenge_token = Utils.GenChallenge();
-                            m_app.SendChallengeToken(auth_request.headers["email"], challenge_token);
+                            await m_app.SendChallengeTokenAsync
+                            (
+                                auth_request.headers["email"], 
+                                auth_request.headers["display"], 
+                                challenge_token
+                            );
                             LogClient(client_address, "Challenge token sent.");
 
                             LogClient(client_address, "Sending challenge response...");

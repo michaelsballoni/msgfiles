@@ -13,7 +13,7 @@
         void Log(string msg);
 
         // Send the user a challenge token to validate with
-        void SendChallengeToken(string email, string token);
+        Task SendChallengeTokenAsync(string email, string display, string token);
 
         // Work with sessions
         Session? GetSession(Dictionary<string, string> auth);

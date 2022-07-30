@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
 
@@ -23,9 +24,10 @@ namespace msgfiles
             Console.WriteLine(message);
         }
 
-        public void SendChallengeToken(string email, string token)
+        public async Task SendChallengeTokenAsync(string email, string display, string token)
         {
             Token = token;
+            await Task.FromResult(0);
         }
 
         public Session CreateSession(Dictionary<string, string> auth)

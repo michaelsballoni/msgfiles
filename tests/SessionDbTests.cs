@@ -37,10 +37,14 @@ namespace msgfiles
                         Assert.AreEqual("blet monkey", session.display);
                     }
 
-                    Assert.IsTrue(db.DropSession(session.token));
-
-                    session = db.GetSession(new_session.token);
-                    Assert.IsNull(session);
+                    if (session != null)
+                    {
+                        Assert.IsTrue(db.DropSession(session.token));
+                        session = db.GetSession(new_session.token);
+                        Assert.IsNull(session);
+                    }
+                    else
+                        Assert.Fail();
                 }
             }
         }

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.IO;
 
 namespace msgfiles
 {
@@ -7,9 +6,9 @@ namespace msgfiles
     {
         public ServerApp()
         {
-            m_thisExeDirPath = 
-                Path.GetDirectoryName(Process.GetCurrentProcess().Modules[0].FileName) 
-                ?? 
+            m_thisExeDirPath =
+                Path.GetDirectoryName(Process.GetCurrentProcess().Modules[0].FileName)
+                ??
                 Environment.CurrentDirectory;
 
             m_settings = new Settings(Path.Combine(m_thisExeDirPath, "settings.ini"));
@@ -27,6 +26,21 @@ namespace msgfiles
             TextWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
             m_sessions = new SessionDb(Path.Combine(m_thisExeDirPath, "sessions.db"));
+
+            m_emailClient =
+                new EmailClient
+                (
+                    m_settings.Get("application", "MailUsername"),
+                    m_settings.Get("application", "MailPassword"),
+                    m_settings.Get("application", "MailRegion")
+                );
+            m_emailClient.SendEmailAsync
+            (
+                m_settings.Get("application", "MailFromAddress"), 
+                new[] { m_settings.Get("application", "MailAdminAddress") },
+                "Server Started Up", 
+                "So far so good..."
+            ).Wait();
         }
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
@@ -64,11 +78,20 @@ namespace msgfiles
             Console.WriteLine(msg);
         }
 
-        public void SendChallengeToken(string email, string token)
+        public async Task SendChallengeTokenAsync(string email, string display, string token)
         {
             m_allowBlock.EnsureEmailAllowed(email);
 
-            // FORNOW - Just show the poor developer the token
+            await m_emailClient.SendEmailAsync
+            (
+                m_settings.Get("application", "MailFromAddress"),
+                new[] { $"{display} <{email}>" },
+                "Message Files - Login Challenge",
+                $"Copy and paste this token into the msgfiles application:\r\n\r\n" +
+                $"{token}\r\n\r\n" +
+                $"Questions or comments?  Feel free to reply to this message!"
+            );
+
             Console.WriteLine("Token for " + email);
             Console.WriteLine(token);
         }
@@ -90,5 +113,8 @@ namespace msgfiles
         private string m_thisExeDirPath;
         private FileSystemWatcher m_settingsWatcher;
         private FileSystemWatcher m_txtFilesWatcher;
+
+        private EmailClient m_emailClient;
     }
 }
+
