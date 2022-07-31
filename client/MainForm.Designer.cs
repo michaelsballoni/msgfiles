@@ -44,6 +44,7 @@
             this.SendFilesButton.TabIndex = 4;
             this.SendFilesButton.Text = "Send Files";
             this.SendFilesButton.UseVisualStyleBackColor = true;
+            this.SendFilesButton.Click += new System.EventHandler(this.SendFilesButton_Click);
             // 
             // OpenMessageButton
             // 

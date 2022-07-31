@@ -32,5 +32,11 @@ namespace msgfiles
         {
             Connect();
         }
+
+        private void SendFilesButton_Click(object sender, EventArgs e)
+        {
+            var dlg = new SendFilesForm();
+            dlg.Show();
+        }
     }
 }

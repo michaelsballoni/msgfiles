@@ -14,21 +14,13 @@ namespace msgfiles
             m_blockList = block;
         }
 
+
+
         public void EnsureEmailAllowed(string email)
         {
-            email = email.Trim().ToLower();
-            if (email.Length == 0 || email.EndsWith('.'))
+            email = Utils.GetValidEmail(email);
+            if (email.Length == 0)
                 throw new InputException($"Invalid email: {email}");
-
-            try
-            {
-                if ((new System.Net.Mail.MailAddress(email)).Address != email)
-                    throw new InputException($"Invalid email: {email}");
-            }
-            catch
-            {
-                throw new InputException($"Invalid email: {email}");
-            }
 
             string domain = email.Substring(email.IndexOf('@')).Trim();
 

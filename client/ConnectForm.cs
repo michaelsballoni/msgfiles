@@ -51,18 +51,21 @@
                 if (string.IsNullOrWhiteSpace(NameTextBox.Text))
                 {
                     MessageBox.Show("Fill in the Name field");
+                    NameTextBox.Focus();
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(EmailTextBox.Text))
                 {
                     MessageBox.Show("Fill in the Email field");
+                    EmailTextBox.Focus();
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(ServerTextBox.Text))
                 {
                     MessageBox.Show("Fill in the Server field");
+                    ServerTextBox.Focus();
                     return;
                 }
 

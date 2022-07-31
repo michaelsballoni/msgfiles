@@ -77,6 +77,25 @@ namespace msgfiles
             return stream;
         }
 
+        public static string GetValidEmail(string email)
+        {
+            email = email.Trim().ToLower();
+            if (email.Length == 0 || email.EndsWith('.'))
+                return "";
+
+            try
+            {
+                if ((new System.Net.Mail.MailAddress(email)).Address != email)
+                    return "";
+            }
+            catch
+            {
+                return "";
+            }
+
+            return email;
+        }
+
         public static string Encrypt(string plainText, string key)
         {
             return 
