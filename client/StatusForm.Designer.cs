@@ -73,9 +73,9 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "StatusForm";
-            this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Send Message Status";
+            this.Load += new System.EventHandler(this.StatusForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

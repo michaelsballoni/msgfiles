@@ -28,6 +28,11 @@
             StatusBarLabel.Text = msg;
         }
 
+        public void Progress(int cur, int total) 
+        {
+            Application.DoEvents();
+        }
+
         private bool m_cancelled = false;
 
         private void CancelButton_Click(object sender, EventArgs e)

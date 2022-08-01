@@ -37,6 +37,13 @@ namespace msgfiles
             Assert.IsTrue(enc != "foo");
             Assert.IsTrue(dec != enc);
             Assert.AreEqual("foo", dec);
+
+            Assert.AreEqual("", Utils.GetValidEmail(""));
+            Assert.AreEqual("", Utils.GetValidEmail("a"));
+            Assert.AreEqual("", Utils.GetValidEmail("@b"));
+            Assert.AreEqual("a@b", Utils.GetValidEmail("a@b"));
+            Assert.AreEqual("", Utils.GetValidEmail("a@b."));
+            Assert.AreEqual("a@b.c", Utils.GetValidEmail("a@b.c"));
         }
     }
 }

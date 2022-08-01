@@ -17,6 +17,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Message.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetZip" Version="1.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\lib\lib.csproj" />
   </ItemGroup>
 

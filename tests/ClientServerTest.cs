@@ -15,6 +15,8 @@ namespace msgfiles
         {
             Console.WriteLine(message);
         }
+
+        public void Progress(int cur, int total) { }
     }
 
     public class TestServerApp : IServerApp

@@ -100,7 +100,15 @@ namespace msgfiles
         {
             string file_path = Path.Combine(m_thisExeDirPath, fileName);
             if (File.Exists(file_path))
-                return new HashSet<string>(File.ReadAllLines(file_path));
+            {
+                return
+                    new HashSet<string>
+                    (
+                        File.ReadAllLines(file_path)
+                        .Select(e => e.Trim().ToLower())
+                        .Where(e => e.Length > 0)
+                    );
+            }
             else
                 return new HashSet<string>();
         }

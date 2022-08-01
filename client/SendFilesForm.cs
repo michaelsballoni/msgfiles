@@ -195,6 +195,20 @@ namespace msgfiles
                 MessageBox.Show("Add files or folders that you want to send");
                 return;
             }
+            var paths = new List<string>();
+            foreach (var item in FilesListBox.Items)
+            {
+                string? item_str = item == null ? "" : item.ToString();
+                if (item_str == null)
+                    continue;
+                else
+                    paths.Add(item_str);
+            }
+
+            var status_dlg = new StatusForm(new Msg(to_addresses, subject, body, paths));
+            status_dlg.Show();
+
+            Close();
         }
     }
 }

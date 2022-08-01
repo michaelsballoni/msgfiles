@@ -121,6 +121,57 @@ namespace msgfiles
             m_client = null;
         }
 
+        public bool SendMsg(Msg msg, string password, string zipFilePath)
+        {
+            m_app.Log("Sending header...");
+            long zip_file_size_bytes = new FileInfo(zipFilePath).Length;
+            var send_request =
+                new ClientRequest()
+                {
+                    version = 1,
+                    verb = "SENDMESSAGE",
+                    headers = new Dictionary<string, string>() 
+                    { 
+                        { "to", string.Join(';', msg.To) },
+                        { "subject", msg.Subject },
+                        { "body", msg.Body },
+                        { "pwd", password },
+                        { "packageSizeBytes", zip_file_size_bytes.ToString() }
+                    }
+                };
+            if (m_stream == null)
+                return false;
+            SecureNet.SendObject(m_stream, send_request);
+
+            m_app.Log("Sending package...");
+            using (var zip_file_stream = File.OpenRead(zipFilePath))
+            {
+                int zip_file_size_mb = (int)Math.Max(zip_file_size_bytes / 1024 / 1024, 1);
+                long sent_yet = 0;
+                byte[] buffer = new byte[64 * 1024];
+                while (sent_yet < zip_file_size_bytes)
+                {
+                    int to_read = (int)Math.Min(buffer.Length, zip_file_size_bytes - sent_yet);
+                    int read = zip_file_stream.Read(buffer, 0, to_read);
+                    m_stream.Write(buffer, 0, read);
+                    sent_yet = read;
+                    m_app.Progress((int)(sent_yet / 1024 / 1024), zip_file_size_mb);
+                    if (m_app.Cancelled)
+                        return false;
+                }
+            }
+            if (m_app.Cancelled)
+                return false;
+
+            m_app.Log("Receiving response...");
+            var send_response = SecureNet.ReadObject<ServerResponse>(m_stream);
+            m_app.Log($"Server Response: {send_response.ResponseSummary}");
+            if (send_response.statusCode / 100 != 2)
+                throw send_response.CreateException();
+            else
+                return true;
+        }
+
         private IClientApp m_app;
 
         public string SessionToken { get; set; } = "";

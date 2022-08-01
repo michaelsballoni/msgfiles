@@ -79,7 +79,7 @@ namespace msgfiles
 
         public static string GetValidEmail(string email)
         {
-            email = email.Trim().ToLower();
+            email = email.Trim();
             if (email.Length == 0 || email.EndsWith('.'))
                 return "";
 

@@ -18,11 +18,11 @@ namespace msgfiles
 
         public void EnsureEmailAllowed(string email)
         {
-            email = Utils.GetValidEmail(email);
+            email = Utils.GetValidEmail(email).ToLower();
             if (email.Length == 0)
                 throw new InputException($"Invalid email: {email}");
 
-            string domain = email.Substring(email.IndexOf('@')).Trim();
+            string domain = email.Substring(email.IndexOf('@')).ToLower();
 
             if (m_allowList.Contains(email))
                 return;
