@@ -14,9 +14,14 @@ namespace msgfiles
 {
     public static class SecureNet
     {
+        public static int CertPrivateKeySizeBits = 4096;
+
+        public static int MaxSendObjectBytes = 64 * 1024;
+        public static int MaxReadObjectBytes = 64 * 1024;
+
         public static X509Certificate GenCert(string hostname)
         {
-            using (RSA rsa = RSA.Create(4096))
+            using (RSA rsa = RSA.Create(CertPrivateKeySizeBits))
             {
                 var distinguishedName = new X500DistinguishedName($"CN={hostname}");
                 var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -48,7 +53,7 @@ namespace msgfiles
             string json = JsonConvert.SerializeObject(headers);
 
             byte[] json_bytes = Encoding.UTF8.GetBytes(json);
-            if (json_bytes.Length > 64 * 1024)
+            if (json_bytes.Length > MaxSendObjectBytes)
                 throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
@@ -62,7 +67,7 @@ namespace msgfiles
             string json = JsonConvert.SerializeObject(headers);
 
             byte[] json_bytes = Encoding.UTF8.GetBytes(json);
-            if (json_bytes.Length > 64 * 1024)
+            if (json_bytes.Length > MaxSendObjectBytes)
                 throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
@@ -79,7 +84,7 @@ namespace msgfiles
                 throw new NetworkException("Connection closed");
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
-            if (bytes_length > 64 * 1024)
+            if (bytes_length > MaxReadObjectBytes)
                 throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];
@@ -110,7 +115,7 @@ namespace msgfiles
                 throw new NetworkException("Connection closed");
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
-            if (bytes_length > 64 * 1024)
+            if (bytes_length > MaxReadObjectBytes)
                 throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];

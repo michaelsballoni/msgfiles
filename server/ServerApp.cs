@@ -37,7 +37,7 @@ namespace msgfiles
             m_emailClient.SendEmailAsync
             (
                 m_settings.Get("application", "MailFromAddress"), 
-                new[] { m_settings.Get("application", "MailAdminAddress") },
+                new Dictionary<string, string>() { { m_settings.Get("application", "MailAdminAddress"), "Message Files Hello"} },
                 "Server Started Up", 
                 "So far so good..."
             ).Wait();
@@ -85,7 +85,7 @@ namespace msgfiles
             await m_emailClient.SendEmailAsync
             (
                 m_settings.Get("application", "MailFromAddress"),
-                new[] { $"{display} <{email}>" },
+                new Dictionary<string, string>() { { email , display } },
                 "Message Files - Login Challenge",
                 $"Copy and paste this token into the msgfiles application:\r\n\r\n" +
                 $"{token}\r\n\r\n" +
@@ -94,6 +94,28 @@ namespace msgfiles
 
             Console.WriteLine("Token for " + email);
             Console.WriteLine(token);
+        }
+
+        public async Task SendMessage(string from, string toos, string message)
+        {
+            var from_kvp = Utils.ParseEmail(from);
+            m_allowBlock.EnsureEmailAllowed(from_kvp.Key);
+
+            var toos_dict = new Dictionary<string, string>();
+            foreach (string to in toos.Trim().Trim(';').Split(';'))
+            {
+                var to_kvp = Utils.ParseEmail(to);
+                m_allowBlock.EnsureEmailAllowed(to_kvp.Key);
+                toos_dict.Add(to_kvp.Key, to_kvp.Value);
+            }
+
+            await m_emailClient.SendEmailAsync
+            (
+                m_settings.Get("application", "MailFromAddress"),
+                toos_dict,
+                $"Message Files - New Message From {from}",
+                message
+            );
         }
 
         private HashSet<string> LoadFileList(string fileName)

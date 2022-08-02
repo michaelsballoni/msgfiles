@@ -96,6 +96,20 @@ namespace msgfiles
             return email;
         }
 
+        // FORNOW - Test this!!!
+        public static KeyValuePair<string, string> ParseEmail(string email)
+        {
+            int angle = email.IndexOf('<');
+            if (angle >= 0)
+            {
+                string to_name = email.Substring(0, angle).Trim();
+                string to_addr = email.Substring(angle).Trim().Trim('<', '>').Trim();
+                return new KeyValuePair<string, string>(to_addr, to_name);
+            }
+            else
+                return new KeyValuePair<string, string>(email.Trim(), "");
+        }
+
         public static string Encrypt(string plainText, string key)
         {
             return 

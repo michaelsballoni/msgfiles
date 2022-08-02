@@ -15,6 +15,9 @@
         // Send the user a challenge token to validate with
         Task SendChallengeTokenAsync(string email, string display, string token);
 
+        // Send recipients the message
+        Task SendMessage(string from, string toos, string message);
+
         // Work with sessions
         Session? GetSession(Dictionary<string, string> auth);
         Session CreateSession(Dictionary<string, string> auth);

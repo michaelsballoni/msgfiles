@@ -20,8 +20,8 @@ namespace msgfiles
         public async Task 
             SendEmailAsync
             (
-                string from,
-                IEnumerable<string> recipients, // address, name
+                string from, // display <email> or just email
+                Dictionary<string, string> toAddrs, // email -> display
                 string subject, 
                 string body
             )
@@ -31,7 +31,14 @@ namespace msgfiles
             msg.FromEmailAddress = from;
 
             msg.Destination = new Destination();
-            msg.Destination.ToAddresses = new List<string>(recipients);
+            msg.Destination.ToAddresses = 
+                new List<string>
+                (
+                    toAddrs.Select
+                    (
+                        kvp => kvp.Value.Length > 0 ? $"{kvp.Value} <{kvp.Key}>" : kvp.Key
+                    )
+                );
 
             msg.Content =
                 new EmailContent()

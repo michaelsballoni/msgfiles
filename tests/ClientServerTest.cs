@@ -32,6 +32,12 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
+        public async Task SendMessage(string from, string toos, string message)
+        {
+            Message = message;
+            await Task.FromResult(0);
+        }
+
         public Session CreateSession(Dictionary<string, string> auth)
         {
             m_session = new Session() { token = Utils.GenToken(), email = auth["email"], display = auth["display"] };
@@ -55,6 +61,7 @@ namespace msgfiles
         }
 
         public string Token = "";
+        public string Message = "";
 
         private Session? m_session = null;
     }
@@ -99,6 +106,14 @@ namespace msgfiles
                     Assert.IsTrue(!challenge_required);
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
+
+                    // FORNOW - Test Sending Msg
+
+                    // FORNOW - Test Inbox
+
+                    // FORNOW - Test Opening Msg
+
+                    // FORNOW - Test Deleting Msg
                 }
             }
         }
