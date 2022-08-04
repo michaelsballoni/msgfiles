@@ -23,7 +23,7 @@
         Session CreateSession(Dictionary<string, string> auth);
         bool DropSession(Dictionary<string, string> auth);
 
-        /* FORNOW
+        /* FORNOW - Message DB
         void StoreMessage(Message msg);
         List<Message> GetMessages(string email);
         Message GetMessage(string token);

@@ -60,6 +60,7 @@
             this.CancelSendButton.TabIndex = 2;
             this.CancelSendButton.Text = "Cancel Send";
             this.CancelSendButton.UseVisualStyleBackColor = true;
+            this.CancelSendButton.Click += new System.EventHandler(this.CancelSendButton_Click);
             // 
             // StatusForm
             // 

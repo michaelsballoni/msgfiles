@@ -44,6 +44,43 @@ namespace msgfiles
             Assert.AreEqual("a@b", Utils.GetValidEmail("a@b"));
             Assert.AreEqual("", Utils.GetValidEmail("a@b."));
             Assert.AreEqual("a@b.c", Utils.GetValidEmail("a@b.c"));
+
+            {
+                KeyValuePair<string, string> addr_name = new KeyValuePair<string, string>();
+
+                try
+                {
+                    addr_name = Utils.ParseEmail("");
+                    Assert.Fail();
+                }
+                catch { }
+
+                try
+                {
+                    addr_name = Utils.ParseEmail(" ");
+                    Assert.Fail();
+                }
+                catch { }
+
+                try
+                {
+                    addr_name = Utils.ParseEmail("foo");
+                    Assert.Fail();
+                }
+                catch { }
+
+                addr_name = Utils.ParseEmail("foo@bar.com");
+                Assert.AreEqual("foo@bar.com", addr_name.Key);
+                Assert.AreEqual("", addr_name.Value);
+
+                addr_name = Utils.ParseEmail("blet monkey <foo@bar.com>");
+                Assert.AreEqual("foo@bar.com", addr_name.Key);
+                Assert.AreEqual("blet monkey", addr_name.Value);
+
+                addr_name = Utils.ParseEmail("blet monkey <trick> <foo@bar.com>");
+                Assert.AreEqual("foo@bar.com", addr_name.Key);
+                Assert.AreEqual("blet monkey <trick>", addr_name.Value);
+            }
         }
     }
 }

@@ -33,37 +33,13 @@ namespace msgfiles
 
         private bool m_cancelled = false;
 
-        private void StatusForm_Load(object sender, EventArgs e)
+        private void DoSend()
         {
-            Show();
+            CancelSendButton.Text = "Cancel Send";
 
-            string pwd = Utils.GenToken();
-            string zip_file_path = 
-                Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-
+            bool success = false;
             try
             {
-                using (var zip = new ZipFile(zip_file_path))
-                {
-                    Log("Adding files to package...");
-
-                    zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
-                    zip.Password = pwd;
-
-                    foreach (var path in m_msg.Paths)
-                    {
-                        if (File.Exists(path))
-                            zip.AddFile(path);
-                        else if (Directory.Exists(path))
-                            zip.AddDirectory(path);
-                        else
-                            throw new Exception($"Item to send not found: {path}");
-                    }
-
-                    Log("Saving package...");
-                    zip.Save();
-                }
-
                 using (var client = new Client(this))
                 {
                     do
@@ -92,9 +68,10 @@ namespace msgfiles
                             return;
                     } while (false);
 
-                    if (client.SendMsg(m_msg, pwd, zip_file_path))
+                    if (client.SendMsg(m_msg))
                     {
                         MessageBox.Show("Message sent!");
+                        success = true;
                         Close();
                     }
                     else
@@ -107,12 +84,25 @@ namespace msgfiles
             }
             finally
             {
-                try
+                if (!success)
                 {
-                    File.Delete(zip_file_path);
+                    CancelSendButton.Text = "Retry Send";
                 }
-                catch { }
             }
+        }
+
+        private void StatusForm_Load(object sender, EventArgs e)
+        {
+            Show();
+            DoSend();
+        }
+
+        private void CancelSendButton_Click(object sender, EventArgs e)
+        {
+            if (CancelSendButton.Text == "Cancel Send")
+                m_cancelled = true;
+            else
+                DoSend();
         }
     }
 }
