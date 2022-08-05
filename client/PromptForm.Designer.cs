@@ -99,6 +99,6 @@
         private Button OkButton;
         private Button ReturnButton;
         private Label PromptMessageLabel;
-        public TextBox ResultTextBox;
+        private TextBox ResultTextBox;
     }
 }

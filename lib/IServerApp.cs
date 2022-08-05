@@ -9,11 +9,23 @@
 
     public class HandlerContext
     {
-        public HandlerContext(Stream connectionStream)
+        public HandlerContext
+        (
+            IServerApp app, 
+            string clientAddress, 
+            Dictionary<string, string> auth, 
+            Stream connectionStream
+        )
         {
+            App = app;
+            ClientAddress = clientAddress;
+            Auth = auth;
             ConnectionStream = connectionStream;
         }
 
+        public IServerApp App;
+        public string ClientAddress;
+        public Dictionary<string, string> Auth;
         public Stream ConnectionStream;
 
         public static readonly ServerResponse StandardResponse =
@@ -43,7 +55,7 @@
         Task SendChallengeTokenAsync(string email, string display, string token);
 
         // Send recipients the message
-        Task SendMessage(string from, string toos, string message);
+        Task SendMessageAsync(string from, string toos, string message);
 
         // Work with sessions
         Session? GetSession(Dictionary<string, string> auth);

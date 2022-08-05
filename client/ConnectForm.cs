@@ -28,7 +28,7 @@
             StatusBarLabel.Text = msg;
         }
 
-        public void Progress(int cur, int total) 
+        public void Progress(double progress) 
         {
             Application.DoEvents();
         }
@@ -109,11 +109,11 @@
                     {
                         StatusBarLabel.Text = "...";
 
-                        var prompt_dialog = new PromptForm("Submit Challenge Response", "Enter the 6-digit code from the email you just got:");
+                        var prompt_dialog = new PromptForm("Enter the 6-digit code from the email you just got:");
                         if (prompt_dialog.ShowDialog() != DialogResult.OK)
                             return;
 
-                        string response = prompt_dialog.ResultTextBox.Text.Trim();
+                        string response = prompt_dialog.ResultValue;
                         if (string.IsNullOrEmpty(response))
                             return;
 

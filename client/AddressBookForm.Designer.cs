@@ -32,6 +32,7 @@
             this.OkButton = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.ReturnButton = new System.Windows.Forms.Button();
+            this.AddAddressButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // AddressCheckListBox
@@ -60,14 +61,24 @@
             this.button1.Text = "button1";
             this.button1.UseVisualStyleBackColor = true;
             // 
-            // CancelButton
+            // ReturnButton
             // 
             this.ReturnButton.Location = new System.Drawing.Point(12, 726);
-            this.ReturnButton.Name = "CancelButton";
+            this.ReturnButton.Name = "ReturnButton";
             this.ReturnButton.Size = new System.Drawing.Size(188, 58);
             this.ReturnButton.TabIndex = 2;
             this.ReturnButton.Text = "Cancel";
             this.ReturnButton.UseVisualStyleBackColor = true;
+            // 
+            // AddAddressButton
+            // 
+            this.AddAddressButton.Location = new System.Drawing.Point(299, 726);
+            this.AddAddressButton.Name = "AddAddressButton";
+            this.AddAddressButton.Size = new System.Drawing.Size(295, 58);
+            this.AddAddressButton.TabIndex = 4;
+            this.AddAddressButton.Text = "Add Address";
+            this.AddAddressButton.UseVisualStyleBackColor = true;
+            this.AddAddressButton.Click += new System.EventHandler(this.AddAddressButton_Click);
             // 
             // AddressBookForm
             // 
@@ -76,6 +87,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.ReturnButton;
             this.ClientSize = new System.Drawing.Size(911, 802);
+            this.Controls.Add(this.AddAddressButton);
             this.Controls.Add(this.ReturnButton);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.OkButton);
@@ -86,6 +98,7 @@
             this.Name = "AddressBookForm";
             this.ShowInTaskbar = false;
             this.Text = "Message Files - Address Book";
+            this.Load += new System.EventHandler(this.AddressBookForm_Load);
             this.ResumeLayout(false);
 
         }
@@ -96,5 +109,6 @@
         private Button OkButton;
         private Button button1;
         private Button ReturnButton;
+        private Button AddAddressButton;
     }
 }

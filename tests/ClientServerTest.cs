@@ -10,13 +10,11 @@ namespace msgfiles
     public class TestClientApp : IClientApp
     {
         public bool Cancelled { get { return false; } }
-
         public void Log(string message)
         {
             Console.WriteLine(message);
         }
-
-        public void Progress(int cur, int total) { }
+        public void Progress(double progress) { }
     }
 
     public class TestServerApp : IServerApp
@@ -34,7 +32,7 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendMessage(string from, string toos, string message)
+        public async Task SendMessageAsync(string from, string toos, string message)
         {
             Message = message;
             await Task.FromResult(0);

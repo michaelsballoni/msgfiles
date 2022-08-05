@@ -10,11 +10,13 @@ namespace msgfiles
 {
     public class MsgRequestHandler : IServerRequestHandler
     {
+        public static int MaxSendPayloadMB = 1024; // FORNOW - Load from config
+
         public async Task<ServerResponse> HandleRequestAsync(ClientRequest request, HandlerContext ctxt)
         {
             switch (request.verb)
             {
-                case "SENDMESSAGE":
+                case "SEND":
                     {
                         ServerResponse server_response = 
                             await HandleSendRequestAsync(request, ctxt).ConfigureAwait(false);
@@ -24,6 +26,11 @@ namespace msgfiles
                 default:
                     throw new InputException($"Unrecognized verb: {request.verb}");
             }
+        }
+
+        private void Log(HandlerContext ctxt, string msg)
+        {
+            ctxt.App.Log($"{ctxt.ClientAddress}:{ctxt.Auth["email"]}: {msg}");
         }
 
         private async Task<ServerResponse> HandleSendRequestAsync(ClientRequest request, HandlerContext ctxt)
@@ -55,13 +62,16 @@ namespace msgfiles
             long package_size_bytes;
             if (!long.TryParse(request.headers["packageSizeBytes"], out package_size_bytes))
                 throw new InputException("Header missing: packageSizeBytes");
-            if (package_size_bytes > int.MaxValue)
-                throw new InputException("Header invalid: packageSizeBytes > 2 GB");
+            if (package_size_bytes / 1024 / 1024 > MaxSendPayloadMB)
+                throw new InputException("Header invalid: package too big");
+
+            Log(ctxt, $"Sending: To: {to} - Subject: {subject}");
 
             // Save the ZIP to disk
             string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             try
             {
+                Log(ctxt, $"Saving ZIP: {temp_zip_file_path}");
                 using (var zip_file_stream = File.OpenWrite(temp_zip_file_path))
                 {
                     long written_yet = 0;
@@ -77,6 +87,7 @@ namespace msgfiles
                     }
                 }
 
+                Log(ctxt, $"Inventorying ZIP");
                 string zip_manifest;
                 {
                     StringBuilder sb = new StringBuilder();
@@ -103,7 +114,23 @@ namespace msgfiles
                     zip_manifest = sb.ToString();
                 }
 
-                // FORNOW - Finish this!!!
+                // FORNOW
+                // Store the ZIP file, key -> path
+                // Store the messages to the to addresses
+
+                Log(ctxt, $"Sending email");
+
+                string email_body =
+                    $"msgfiles from {ctxt.Auth["display"]} ({ctxt.Auth["email"]}): {subject}\n\n" +
+                    $"{body}\n\n" +
+                    $"Run the msgfiles application, open this message there, and enter this password to access these files:\n\n" +
+                    $"Password: {pwd}\n\n" +
+                    $"If you do not recogize the sender or anything looks suspicious in the list of files below, reply to this email to report it.\n\n" +
+                    $"Here are the files you have been sent.\n\n" +
+                    zip_manifest;
+
+                string email_from = $"{ctxt.Auth["display"]} <{ctxt.Auth["email"]}>";
+                await ctxt.App.SendMessageAsync(email_from, to, email_body);
 
                 return HandlerContext.StandardResponse;
             }

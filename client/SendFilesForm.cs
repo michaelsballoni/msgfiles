@@ -17,6 +17,23 @@ namespace msgfiles
             InitializeComponent();
         }
 
+        private List<string> ToAddresses
+        {
+            get
+            {
+                return
+                    ToEmailsTextBox.Text
+                    .Split(';')
+                    .Select(to => to.Trim())
+                    .Where(to => to.Length > 0)
+                    .ToList();
+            }
+            set
+            {
+                ToEmailsTextBox.Text = string.Join("; ", value);
+            }
+        }
+
         private void AddFilesButton_Click(object sender, EventArgs e)
         {
             HashSet<string> existing_paths = new HashSet<string>();
@@ -153,12 +170,7 @@ namespace msgfiles
 
         private void SendFilesButton_Click(object sender, EventArgs e)
         {
-            var to_addresses = 
-                ToEmailsTextBox.Text
-                .Split(' ')
-                .Select(to => to.Trim())
-                .Where(to => to.Length > 0)
-                .ToList();
+            var to_addresses = ToAddresses;
             if (to_addresses.Count == 0)
             {
                 MessageBox.Show("Specify email addresses to send the files to");
@@ -209,6 +221,17 @@ namespace msgfiles
             status_dlg.Show();
 
             Close();
+        }
+
+        private void AddressButton_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new AddressBookForm())
+            {
+                if (dlg.ShowDialog() != DialogResult.OK)
+                    return;
+
+                ToAddresses = dlg.AddressesToAdd;
+            }
         }
     }
 }

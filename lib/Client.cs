@@ -133,6 +133,8 @@ namespace msgfiles
                 using (var zip = new ZipFile(zip_file_path))
                 {
                     m_app.Log("Adding files to package...");
+                    m_lastZipCurrentFilename = "";
+                    zip.SaveProgress += Zip_SaveProgress;
 
                     zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
                     zip.Password = pwd;
@@ -157,14 +159,14 @@ namespace msgfiles
                     new ClientRequest()
                     {
                         version = 1,
-                        verb = "SENDMESSAGE",
+                        verb = "SEND",
                         headers = new Dictionary<string, string>()
                         {
-                        { "to", string.Join(';', msg.To) },
-                        { "subject", msg.Subject },
-                        { "body", msg.Body },
-                        { "pwd", pwd },
-                        { "packageSizeBytes", zip_file_size_bytes.ToString() }
+                            { "to", string.Join("; ", msg.To) },
+                            { "subject", msg.Subject },
+                            { "body", msg.Body },
+                            { "pwd", pwd },
+                            { "packageSizeBytes", zip_file_size_bytes.ToString() }
                         }
                     };
                 if (m_stream == null)
@@ -185,7 +187,7 @@ namespace msgfiles
                         m_stream.Write(buffer, 0, read);
                         sent_yet += read;
 
-                        m_app.Progress((int)(sent_yet / 1024 / 1024), zip_file_size_mb);
+                        m_app.Progress((double)sent_yet / zip_file_size_bytes);
                         if (m_app.Cancelled)
                             return false;
                     }
@@ -208,7 +210,32 @@ namespace msgfiles
             }
         }
 
+        private void Zip_SaveProgress(object? sender, SaveProgressEventArgs e)
+        {
+            if (m_app.Cancelled)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (e.CurrentEntry != null && e.CurrentEntry.FileName != m_lastZipCurrentFilename)
+            {
+                m_lastZipCurrentFilename = e.CurrentEntry.FileName;
+                m_app.Log(m_lastZipCurrentFilename);
+            }
+
+            double min_progress =
+                Math.Min
+                (
+                    (double)e.EntriesSaved / Math.Min(e.EntriesTotal, 1),
+                    (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
+                );
+            m_app.Progress(min_progress);
+        }
+
         private IClientApp m_app;
+
+        private string m_lastZipCurrentFilename = "";
 
         public string SessionToken { get; set; } = "";
 

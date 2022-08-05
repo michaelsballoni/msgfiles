@@ -1,4 +1,4 @@
-﻿// FORNOW - Have server app hand it out from settings
+﻿// FORNOW - Have server app hand out port and name from settings.ini
 int port = 9914;
 string hostname = "msgfiles";
 

@@ -4,6 +4,6 @@
     {
         bool Cancelled { get; }
         void Log(string msg);
-        void Progress(int cur, int total);
+        void Progress(double progress);
     }
 }

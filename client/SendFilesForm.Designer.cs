@@ -41,6 +41,7 @@
             this.MessageTextBox = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.AddressButton = new System.Windows.Forms.Button();
             this.ToEmailsTextBox = new System.Windows.Forms.TextBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.SubjectTextBox = new System.Windows.Forms.TextBox();
@@ -180,21 +181,34 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.AddressButton);
             this.groupBox3.Controls.Add(this.ToEmailsTextBox);
             this.groupBox3.Location = new System.Drawing.Point(12, 12);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(1254, 163);
             this.groupBox3.TabIndex = 11;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Send To Email Addresses - Separate Multiple With Spaces";
+            this.groupBox3.Text = "Send To Email Addresses";
+            // 
+            // AddressButton
+            // 
+            this.AddressButton.Location = new System.Drawing.Point(1106, 39);
+            this.AddressButton.Name = "AddressButton";
+            this.AddressButton.Size = new System.Drawing.Size(142, 106);
+            this.AddressButton.TabIndex = 2;
+            this.AddressButton.Text = "...";
+            this.AddressButton.UseVisualStyleBackColor = true;
+            this.AddressButton.Click += new System.EventHandler(this.AddressButton_Click);
             // 
             // ToEmailsTextBox
             // 
+            this.ToEmailsTextBox.BackColor = System.Drawing.SystemColors.Window;
             this.ToEmailsTextBox.Location = new System.Drawing.Point(21, 39);
             this.ToEmailsTextBox.Multiline = true;
             this.ToEmailsTextBox.Name = "ToEmailsTextBox";
+            this.ToEmailsTextBox.ReadOnly = true;
             this.ToEmailsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ToEmailsTextBox.Size = new System.Drawing.Size(1221, 106);
+            this.ToEmailsTextBox.Size = new System.Drawing.Size(1072, 106);
             this.ToEmailsTextBox.TabIndex = 1;
             // 
             // groupBox5
@@ -262,5 +276,6 @@
         private TextBox ToEmailsTextBox;
         private GroupBox groupBox5;
         private TextBox SubjectTextBox;
+        private Button AddressButton;
     }
 }

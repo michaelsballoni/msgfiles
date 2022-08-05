@@ -34,11 +34,14 @@ namespace msgfiles
                     m_settings.Get("application", "MailPassword"),
                     m_settings.Get("application", "MailRegion")
                 );
+            var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
+            var to_dict = new Dictionary<string, string>();
+            to_dict.Add(to_kvp.Key, to_kvp.Value);
             m_emailClient.SendEmailAsync
             (
-                m_settings.Get("application", "MailFromAddress"), 
-                new Dictionary<string, string>() { { m_settings.Get("application", "MailAdminAddress"), "Message Files Hello"} },
-                "Server Started Up", 
+                m_settings.Get("application", "MailFromAddress"),
+                to_dict,
+                "Server Started Up",
                 "So far so good..."
             ).Wait();
         }
@@ -98,13 +101,13 @@ namespace msgfiles
 
         public IServerRequestHandler RequestHandler => new MsgRequestHandler();
 
-        public async Task SendMessage(string from, string toos, string message)
+        public async Task SendMessageAsync(string from, string toos, string message)
         {
             var from_kvp = Utils.ParseEmail(from);
             m_allowBlock.EnsureEmailAllowed(from_kvp.Key);
 
             var toos_dict = new Dictionary<string, string>();
-            foreach (string to in toos.Trim().Trim(';').Split(';'))
+            foreach (string to in toos.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0))
             {
                 var to_kvp = Utils.ParseEmail(to);
                 m_allowBlock.EnsureEmailAllowed(to_kvp.Key);
@@ -115,7 +118,7 @@ namespace msgfiles
             (
                 m_settings.Get("application", "MailFromAddress"),
                 toos_dict,
-                $"Message Files - New Message From {from}",
+                $"msgfiles - New Message From {from}",
                 message
             );
         }

@@ -121,7 +121,7 @@ namespace msgfiles
 
                 // Prepare the handle requests
                 var request_handler = m_app.RequestHandler;
-                var handler_ctxt = new HandlerContext(m_stream);
+                var handler_ctxt = new HandlerContext(m_app, m_clientAddress, auth_request.headers, m_stream);
 
                 while (true)
                 {

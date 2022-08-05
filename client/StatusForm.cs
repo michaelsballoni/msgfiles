@@ -23,12 +23,12 @@ namespace msgfiles
         public void Log(string msg)
         {
             Application.DoEvents();
-            LogOutputTextBox.Text += msg + "\r";
+            LogOutputTextBox.AppendText(msg + "\r");
         }
-        public void Progress(int cur, int total)
+        public void Progress(double progress)
         {
             Application.DoEvents();
-            StatusProgressBar.Value = (int)((double)cur / total) * StatusProgressBar.Maximum;
+            StatusProgressBar.Value = (int)Math.Round(progress * StatusProgressBar.Maximum);
         }
 
         private bool m_cancelled = false;
@@ -78,10 +78,12 @@ namespace msgfiles
                         MessageBox.Show("Sending message failed!");
                 }
             }
+#if !DEBUG
             catch (Exception exp)
             {
                 MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
             }
+#endif
             finally
             {
                 if (!success)
