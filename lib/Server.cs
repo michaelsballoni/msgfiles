@@ -17,6 +17,8 @@ namespace msgfiles
             m_listener = new TcpListener(IPAddress.Loopback, m_port);
         }
 
+        public static int ReceiveTimeoutSeconds = 900; // FORNOW - Set from config
+
         public void Dispose()
         {
             Stop();
@@ -33,7 +35,7 @@ namespace msgfiles
                 {
                     TcpClient new_client = m_listener.AcceptTcpClient();
                     new_client.NoDelay = true;
-                    new_client.ReceiveTimeout = 900 * 1000;
+                    new_client.ReceiveTimeout = ReceiveTimeoutSeconds * 1000;
 
                     if (!m_keepRunning)
                         break;

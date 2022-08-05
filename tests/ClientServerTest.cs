@@ -21,6 +21,8 @@ namespace msgfiles
 
     public class TestServerApp : IServerApp
     {
+        public IServerRequestHandler RequestHandler => new MsgRequestHandler();
+
         public void Log(string message)
         {
             Console.WriteLine(message);
@@ -107,13 +109,11 @@ namespace msgfiles
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
 
-                    // FORNOW - Test Sending Msg
-
-                    // FORNOW - Test Inbox
-
-                    // FORNOW - Test Opening Msg
-
-                    // FORNOW - Test Deleting Msg
+                    // FORNOW
+                    // Loop over X 3...
+                        // Enumerate Inbox, Deleting Each Msg
+                        // Test Sending Msg X 4
+                        // Enumerate Inbox, Opening Each Msg
                 }
             }
         }

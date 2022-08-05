@@ -96,6 +96,8 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
+        public IServerRequestHandler RequestHandler => new MsgRequestHandler();
+
         public async Task SendMessage(string from, string toos, string message)
         {
             var from_kvp = Utils.ParseEmail(from);
