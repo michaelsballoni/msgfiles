@@ -81,7 +81,8 @@ namespace msgfiles
                             }
                         }
 
-                        if (client.SendMsg(m_msg))
+                        MsgClient msg_client = new MsgClient(client);
+                        if (msg_client.SendMsg(m_msg))
                         {
                             MessageBox.Show("Message sent!");
                             success = true;

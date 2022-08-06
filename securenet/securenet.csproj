@@ -6,18 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SimpleEmailV2" Version="3.7.1.114" />
     <PackageReference Include="DotNetZip" Version="1.16.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />

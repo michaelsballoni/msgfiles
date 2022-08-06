@@ -60,16 +60,5 @@
         Session? GetSession(Dictionary<string, string> auth);
         Session CreateSession(Dictionary<string, string> auth);
         bool DropSession(Dictionary<string, string> auth);
-
-        // Files
-        string StoreFile(string filePath);
-
-        // Messages
-        /* FORNOW
-        string StoreMessage(ServerMessage msg, string payloadFilePath);
-        List<ServerMessage> GetMessagesTo(string to);
-        ServerMessage GetMessage(string token, string to, out string payloadFilePath);
-        bool DeleteMessage(string token, string to);
-        */
     }
 }

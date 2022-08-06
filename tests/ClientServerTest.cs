@@ -20,7 +20,7 @@ namespace msgfiles
 
     public class TestServerApp : IServerApp
     {
-        public IServerRequestHandler RequestHandler => new MsgRequestHandler();
+        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore);
 
         public void Log(string message)
         {

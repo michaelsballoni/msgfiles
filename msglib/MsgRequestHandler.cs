@@ -12,6 +12,11 @@ namespace msgfiles
     {
         public static int MaxSendPayloadMB = 1024; // FORNOW - Load from config
 
+        public MsgRequestHandler(FileStore fileStore)
+        {
+            m_fileStore = fileStore;
+        }
+
         public async Task<ServerResponse> HandleRequestAsync(ClientRequest request, HandlerContext ctxt)
         {
             switch (request.verb)
@@ -116,7 +121,7 @@ namespace msgfiles
                 }
 
                 Log(ctxt, $"Storing ZIP");
-                stored_file_path = ctxt.App.StoreFile(temp_zip_file_path);
+                stored_file_path = m_fileStore.StoreFile(temp_zip_file_path);
                 File.Delete(temp_zip_file_path);
                 temp_zip_file_path = "";
 
@@ -146,5 +151,7 @@ namespace msgfiles
                     File.Delete(temp_zip_file_path);
             }
         }
+
+        private FileStore m_fileStore;
     }
 }
