@@ -1,8 +1,8 @@
 ﻿namespace msgfiles
 {
-    public class Msg
+    public class ClientMessage
     {
-        public Msg(List<string> to, string subject, string body, List<string> filePaths)
+        public ClientMessage(List<string> to, string subject, string body, List<string> filePaths)
         {
             To = to;
             Subject = subject;
@@ -14,5 +14,15 @@
         public string Subject;
         public string Body;
         public List<string> Paths;
+    }
+
+    public class ServerMessage
+    {
+        public string token { get; set; } = "";
+        public string from { get; set; } = "";
+        public string to { get; set; } = "";
+        public string subject { get; set; } = "";
+        public string body { get; set; } = "";
+        public string manifest { get; set; } = "";
     }
 }

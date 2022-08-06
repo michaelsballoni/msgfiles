@@ -69,6 +69,7 @@ namespace msgfiles
 
             // Save the ZIP to disk
             string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
+            string stored_file_path = "";
             try
             {
                 Log(ctxt, $"Saving ZIP: {temp_zip_file_path}");
@@ -114,6 +115,11 @@ namespace msgfiles
                     zip_manifest = sb.ToString();
                 }
 
+                Log(ctxt, $"Storing ZIP");
+                stored_file_path = ctxt.App.StoreFile(temp_zip_file_path);
+                File.Delete(temp_zip_file_path);
+                temp_zip_file_path = "";
+
                 // FORNOW
                 // Store the ZIP file, key -> path
                 // Store the messages to the to addresses
@@ -136,7 +142,7 @@ namespace msgfiles
             }
             finally
             {
-                if (File.Exists(temp_zip_file_path))
+                if (temp_zip_file_path != "" && File.Exists(temp_zip_file_path))
                     File.Delete(temp_zip_file_path);
             }
         }

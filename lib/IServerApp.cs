@@ -45,27 +45,31 @@
 
     public interface IServerApp
     {
-        // Define how requests are handled
+        // Define how client requests are handled
         IServerRequestHandler RequestHandler { get; }
 
-        // Write to a log file and/or console
         void Log(string msg);
 
-        // Send the user a challenge token to validate with
+        // Send a challenge token to validate
         Task SendChallengeTokenAsync(string email, string display, string token);
 
-        // Send recipients the message
+        // Send a message
         Task SendMessageAsync(string from, string toos, string message);
 
-        // Work with sessions
+        // Sessions
         Session? GetSession(Dictionary<string, string> auth);
         Session CreateSession(Dictionary<string, string> auth);
         bool DropSession(Dictionary<string, string> auth);
 
-        /* FORNOW - Message DB
-        void StoreMessage(Message msg);
-        List<Message> GetMessages(string email);
-        Message GetMessage(string token);
+        // Files
+        string StoreFile(string filePath);
+
+        // Messages
+        /* FORNOW
+        string StoreMessage(ServerMessage msg, string payloadFilePath);
+        List<ServerMessage> GetMessagesTo(string to);
+        ServerMessage GetMessage(string token, string to, out string payloadFilePath);
+        bool DeleteMessage(string token, string to);
         */
     }
 }

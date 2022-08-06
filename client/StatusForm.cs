@@ -4,13 +4,13 @@ namespace msgfiles
 {
     public partial class StatusForm : Form, IClientApp
     {
-        public StatusForm(Msg msg)
+        public StatusForm(ClientMessage msg)
         {
             m_msg = msg;
             InitializeComponent();
         }
 
-        private Msg m_msg;
+        private ClientMessage m_msg;
 
         public bool Cancelled
         {
@@ -36,59 +36,77 @@ namespace msgfiles
         private void DoSend()
         {
             CancelSendButton.Text = "Cancel Send";
+            int seconds_between_retries = 3;
 
             bool success = false;
-            try
+            while (!Cancelled)
             {
-                using (var client = new Client(this))
+                try
                 {
-                    do
+                    using (var client = new Client(this))
                     {
-                        client.SessionToken = GlobalState.SessionToken;
-                        bool challenged =
-                            client.BeginConnect
-                            (
-                                GlobalState.Server,
-                                GlobalState.Port,
-                                GlobalState.DisplayName,
-                                GlobalState.Email
-                            );
-                        if (Cancelled)
-                            return;
-
-                        if (challenged)
+                        while (!Cancelled)
                         {
-                            var connecter = new ConnectForm();
-                            if (connecter.ShowDialog() != DialogResult.OK)
-                                return;
-                            else
-                                continue;
-                        }
-                        if (Cancelled)
-                            return;
-                    } while (false);
+                            try
+                            {
+                                client.SessionToken = GlobalState.SessionToken;
+                                bool challenged =
+                                    client.BeginConnect
+                                    (
+                                        GlobalState.Server,
+                                        GlobalState.Port,
+                                        GlobalState.DisplayName,
+                                        GlobalState.Email
+                                    );
+                                if (Cancelled)
+                                    return;
 
-                    if (client.SendMsg(m_msg))
-                    {
-                        MessageBox.Show("Message sent!");
-                        success = true;
-                        Close();
+                                if (challenged)
+                                {
+                                    var connecter = new ConnectForm();
+                                    if (connecter.ShowDialog() != DialogResult.OK)
+                                        return;
+                                    else
+                                        continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            catch (NetworkException)
+                            {
+                                Log("Authentication failed due to a network error, will retry");
+                                Thread.Sleep(seconds_between_retries * 1000);
+                            }
+                        }
+
+                        if (client.SendMsg(m_msg))
+                        {
+                            MessageBox.Show("Message sent!");
+                            success = true;
+                            Close();
+                            return;
+                        }
+                        else
+                            MessageBox.Show("Sending message failed!");
                     }
-                    else
-                        MessageBox.Show("Sending message failed!");
                 }
-            }
-#if !DEBUG
-            catch (Exception exp)
-            {
-                MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
-            }
-#endif
-            finally
-            {
-                if (!success)
+                catch (NetworkException)
                 {
-                    CancelSendButton.Text = "Retry Send";
+                    Log("Sending the message failed due to a network error, will retry");
+                    Thread.Sleep(seconds_between_retries * 1000);
+                }
+                catch (Exception exp)
+                {
+                    MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
+                }
+                finally
+                {
+                    if (!success)
+                    {
+                        CancelSendButton.Text = "Retry Send";
+                    }
                 }
             }
         }

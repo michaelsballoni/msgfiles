@@ -27,6 +27,8 @@ namespace msgfiles
 
             m_sessions = new SessionDb(Path.Combine(m_thisExeDirPath, "sessions.db"));
 
+            m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
+
             m_emailClient =
                 new EmailClient
                 (
@@ -34,6 +36,7 @@ namespace msgfiles
                     m_settings.Get("application", "MailPassword"),
                     m_settings.Get("application", "MailRegion")
                 );
+
             var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
             var to_dict = new Dictionary<string, string>();
             to_dict.Add(to_kvp.Key, to_kvp.Value);
@@ -60,6 +63,11 @@ namespace msgfiles
             );
         }
 
+        public void Log(string msg)
+        {
+            Console.WriteLine(msg);
+        }
+
         public Session CreateSession(Dictionary<string, string> auth)
         {
             m_allowBlock.EnsureEmailAllowed(auth["email"]);
@@ -76,9 +84,9 @@ namespace msgfiles
             return m_sessions.DropSession(auth["session"]);
         }
 
-        public void Log(string msg)
+        public string StoreFile(string filePath)
         {
-            Console.WriteLine(msg);
+            return m_fileStore.StoreFile(filePath);
         }
 
         public async Task SendChallengeTokenAsync(string email, string display, string token)
@@ -150,6 +158,8 @@ namespace msgfiles
         private FileSystemWatcher m_txtFilesWatcher;
 
         private EmailClient m_emailClient;
+
+        private FileStore m_fileStore;
     }
 }
 

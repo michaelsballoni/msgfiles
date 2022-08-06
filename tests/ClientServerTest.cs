@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 using NUnit.Framework;
 
@@ -60,10 +61,18 @@ namespace msgfiles
                 return false;
         }
 
+        public string StoreFile(string filePath)
+        {
+            return m_fileStore.StoreFile(filePath);
+        }
+
         public string Token = "";
         public string Message = "";
 
         private Session? m_session = null;
+
+        private FileStore m_fileStore = 
+            new FileStore(Path.Combine(Environment.CurrentDirectory, "msgfileStore"));
     }
 
     public class ClientServerTests

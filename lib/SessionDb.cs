@@ -129,6 +129,35 @@ namespace msgfiles
             }
         }
 
+        public int DropOldSessions(int maxAgeSeconds)
+        {
+            List<string> old_session_tokens = new List<string>();
+            {
+                var now = DateTimeOffset.UtcNow;
+                var then = now - new TimeSpan(0, 0, maxAgeSeconds);
+                long oldest_epoch_seconds = then.ToUnixTimeSeconds();
+                string select_sql = "SELECT token FROM sessions WHERE lastaccessEpoch < @oldestEpoch";
+                lock (this)
+                {
+                    using (var cmd = new SQLiteCommand(select_sql, m_db))
+                    {
+                        cmd.Parameters.AddWithValue("@oldestEpoch", oldest_epoch_seconds);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                                old_session_tokens.Add(reader.GetString(0));
+                        }
+                    }
+                }
+            }
+
+            int sessions_deleted = 0;
+            foreach (var token in old_session_tokens)
+                sessions_deleted += DropSession(token) ? 1 : 0;
+            return sessions_deleted;
+        }
+
         private SQLiteConnection? m_db;
     }
 }

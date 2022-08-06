@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading;
 using System.IO;
 
 using NUnit.Framework;
@@ -45,7 +45,18 @@ namespace msgfiles
                     }
                     else
                         Assert.Fail();
+
+                    Assert.AreEqual(0, db.DropOldSessions(0));
                 }
+            }
+
+            using (var db = new SessionDb(db_file_path))
+            {
+                var new_session = db.CreateSession("f@g.h", "something else");
+                Thread.Sleep(2000);
+                Assert.AreEqual(1, db.DropOldSessions(1));
+                var session = db.GetSession(new_session.token);
+                Assert.IsNull(session);
             }
         }
     }

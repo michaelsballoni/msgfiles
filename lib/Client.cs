@@ -16,6 +16,29 @@ namespace msgfiles
             Disconnect();
         }
 
+        public void Disconnect()
+        {
+            try
+            {
+                if (m_stream != null)
+                {
+                    m_stream.Dispose();
+                }
+            }
+            catch { }
+            m_stream = null;
+
+            try
+            {
+                if (m_client != null)
+                {
+                    m_client.Dispose();
+                }
+            }
+            catch { }
+            m_client = null;
+        }
+
         /// <summary>
         /// Start a connection with the server
         /// </summary>
@@ -100,30 +123,7 @@ namespace msgfiles
             }
         }
 
-        public void Disconnect()
-        {
-            try
-            {
-                if (m_stream != null)
-                {
-                    m_stream.Dispose();
-                }
-            }
-            catch { }
-            m_stream = null;
-
-            try
-            {
-                if (m_client != null)
-                {
-                    m_client.Dispose();
-                }
-            }
-            catch { }
-            m_client = null;
-        }
-
-        public bool SendMsg(Msg msg)
+        public bool SendMsg(ClientMessage msg)
         {
             string pwd = Utils.GenToken();
             string zip_file_path =
@@ -233,13 +233,13 @@ namespace msgfiles
             m_app.Progress(min_progress);
         }
 
+        public string SessionToken = "";
+
         private IClientApp m_app;
-
-        private string m_lastZipCurrentFilename = "";
-
-        public string SessionToken { get; set; } = "";
 
         private TcpClient? m_client = null;
         private Stream? m_stream = null;
+
+        private string m_lastZipCurrentFilename = "";
     }
 }

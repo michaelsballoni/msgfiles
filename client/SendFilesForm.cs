@@ -217,7 +217,7 @@ namespace msgfiles
                     paths.Add(item_str);
             }
 
-            var status_dlg = new StatusForm(new Msg(to_addresses, subject, body, paths));
+            var status_dlg = new StatusForm(new ClientMessage(to_addresses, subject, body, paths));
             status_dlg.Show();
 
             Close();
@@ -227,10 +227,8 @@ namespace msgfiles
         {
             using (var dlg = new AddressBookForm())
             {
-                if (dlg.ShowDialog() != DialogResult.OK)
-                    return;
-
-                ToAddresses = dlg.AddressesToAdd;
+                if (dlg.ShowDialog() == DialogResult.OK)
+                    ToAddresses = dlg.AddressesToAdd;
             }
         }
     }
