@@ -24,5 +24,6 @@
         public string subject { get; set; } = "";
         public string body { get; set; } = "";
         public string manifest { get; set; } = "";
+        public DateTimeOffset created { get; set; }
     }
 }

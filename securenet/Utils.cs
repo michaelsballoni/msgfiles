@@ -117,6 +117,12 @@ namespace msgfiles
             }
         }
 
+        // FORNOW - Add unit test!
+        public static string PrepEmailForLookup(string email)
+        {
+            return ParseEmail(email).Key.ToLower();
+        }
+
         public static string Encrypt(string plainText, string key)
         {
             return 

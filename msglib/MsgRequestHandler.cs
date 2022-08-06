@@ -28,6 +28,13 @@ namespace msgfiles
                         return server_response;
                     }
 
+                case "INBOX":
+                    {
+                        ServerResponse server_response =
+                            await HandleInboxRequestAsync(request, ctxt).ConfigureAwait(false);
+                        return server_response;
+                    }
+
                 default:
                     throw new InputException($"Unrecognized verb: {request.verb}");
             }
@@ -152,6 +159,13 @@ namespace msgfiles
             }
         }
 
+        private async Task<ServerResponse> HandleInboxRequestAsync(ClientRequest request, HandlerContext ctxt)
+        {
+            string to = ctxt.Auth["email"];
+            m_allowBlock.EnsureEmailAllowed();
+        }
+
+        private AllowBlock m_allowBlock;
         private FileStore m_fileStore;
     }
 }

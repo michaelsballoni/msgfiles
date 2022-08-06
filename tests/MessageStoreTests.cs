@@ -5,18 +5,18 @@ using NUnit.Framework;
 
 namespace msgfiles
 {
-    public class SessionDbTests
+    public class MessageStoreTests
     {
         [Test]
-        public void TestSessionDb()
+        public void TestMessageStore()
         {
-            string db_file_path = "session_test.db";
+            string db_file_path = "messages_test.db";
             if (File.Exists(db_file_path))
                 File.Delete(db_file_path);
 
             for (int run = 1; run <= 3; ++run)
             {
-                using (var db = new SessionDb(db_file_path))
+                using (var db = new MessageStore(db_file_path))
                 {
                     Session? session;
 
