@@ -28,6 +28,8 @@ namespace msgfiles
         {
             int files_deleted = 0;
 
+            DateTime oldest_date = DateTime.UtcNow - new TimeSpan(0, 0, maxAgeSeconds);
+
             var file_paths_to_delete = new List<string>();
             foreach (var file_path in Directory.GetFiles(m_dirPath))
             {
@@ -36,9 +38,9 @@ namespace msgfiles
                     var file_info = new FileInfo(file_path);
                     if
                     (
-                        (DateTime.UtcNow - file_info.CreationTimeUtc).TotalSeconds > maxAgeSeconds
+                        file_info.CreationTimeUtc < oldest_date
                         &&
-                        (DateTime.UtcNow - file_info.LastAccessTimeUtc).TotalSeconds > maxAgeSeconds
+                        file_info.LastAccessTimeUtc < oldest_date
                     )
                     {
                         file_paths_to_delete.Add(file_path);

@@ -22,8 +22,8 @@ namespace msgfiles
                 string table_sql =
                     "CREATE TABLE messages " +
                     "(token STRING CONSTRAINT message_key PRIMARY KEY, " + 
-                    "from STRING NOT NULL, " +
-                    "to STRING NOT NULL, " +
+                    "fromAddress STRING NOT NULL, " +
+                    "toAddress STRING NOT NULL, " +
                     "subject STRING NOT NULL, " +
                     "body STRING NOT NULL, " +
                     "manifest STRING NOT NULL, " +
@@ -32,14 +32,13 @@ namespace msgfiles
                 using (var cmd = new SQLiteCommand(table_sql, m_db))
                     cmd.ExecuteNonQuery();
 
-                string to_index_sql = "CREATE INDEX message_to_idx ON messages (to)";
+                string to_index_sql = "CREATE INDEX message_to_idx ON messages (toAddress)";
                 using (var cmd = new SQLiteCommand(to_index_sql, m_db))
                     cmd.ExecuteNonQuery();
 
                 string created_index_sql = "CREATE INDEX message_created_idx ON messages (createdEpoch)";
                 using (var cmd = new SQLiteCommand(created_index_sql, m_db))
                     cmd.ExecuteNonQuery();
-
             }
         }
 
@@ -64,7 +63,7 @@ namespace msgfiles
             long created_epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             string insert_sql =
                 "INSERT INTO messages " +
-                        "(token, from, to, subject, body, manifest, createdEpoch, payloadFilePath) " +
+                        "(token, fromAddress, toAddress, subject, body, manifest, createdEpoch, payloadFilePath) " +
                 "VALUES (@token, @from, @to, @subject, @body, @manifest, @createdEpoch, @payloadFilePath)";
             using (var cmd = new SQLiteCommand(insert_sql, m_db))
             {
@@ -85,8 +84,9 @@ namespace msgfiles
         public List<ServerMessage> GetMessages(string to)
         {
             var output = new List<ServerMessage>();
-            string select_sql = 
-                "SELECT token, from, to, subject, body, manifest, createdEpoch FROM messages WHERE to = @to ORDER BY ";
+            string select_sql =
+                "SELECT token, fromAddress, toAddress, subject, body, manifest, createdEpoch " +
+                "FROM messages WHERE toAddress = @to ORDER BY createdEpoch DESC";
             using (var cmd = new SQLiteCommand(select_sql, m_db))
             {
                 cmd.Parameters.AddWithValue("@to", Utils.PrepEmailForLookup(to));
@@ -99,12 +99,13 @@ namespace msgfiles
                             ServerMessage msg =
                                 new ServerMessage()
                                 {
-                                    from = reader.GetString(0),
-                                    to = reader.GetString(1),
-                                    subject = reader.GetString(2),
-                                    body = reader.GetString(3),
-                                    manifest = reader.GetString(4),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(5))
+                                    token = reader.GetString(0),
+                                    from = reader.GetString(1),
+                                    to = reader.GetString(2),
+                                    subject = reader.GetString(3),
+                                    body = reader.GetString(4),
+                                    manifest = reader.GetString(5),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(6))
                                 };
                             output.Add(msg);
                         }
@@ -114,12 +115,14 @@ namespace msgfiles
             return output;
         }
 
-        public ServerMessage GetMessage(string token, string to, out string payloadFilePath)
+        public ServerMessage? GetMessage(string token, string to, out string payloadFilePath)
         {
+            payloadFilePath = "";
+
             string select_sql =
-                "SELECT token, from, to, subject, body, manifest, createdEpoch, payloadFilePath " +
+                "SELECT token, fromAddress, toAddress, subject, body, manifest, createdEpoch, payloadFilePath " +
                 "FROM messages " +
-                "WHERE token = @token AND to = @to";
+                "WHERE token = @token AND toAddress = @to";
             using (var cmd = new SQLiteCommand(select_sql, m_db))
             {
                 cmd.Parameters.AddWithValue("@token", token);
@@ -133,36 +136,42 @@ namespace msgfiles
                             ServerMessage msg =
                                 new ServerMessage()
                                 {
-                                    from = reader.GetString(0),
-                                    to = reader.GetString(1),
-                                    subject = reader.GetString(2),
-                                    body = reader.GetString(3),
-                                    manifest = reader.GetString(4),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(5))
+                                    token = reader.GetString(0),
+                                    from = reader.GetString(1),
+                                    to = reader.GetString(2),
+                                    subject = reader.GetString(3),
+                                    body = reader.GetString(4),
+                                    manifest = reader.GetString(5),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(6))
                                 };
-                            payloadFilePath = reader.GetString(6);
+                            payloadFilePath = reader.GetString(7);
                             return msg;
                         }
                     }
                 }
             }
-            throw new InputException("Message not found");
+            return null;
         }
 
         public bool DeleteMessage(string token, string to)
         {
-            string select_sql = "SELETE payloadFilePath FROM messages WHERE token = @token";
-            string file_path;
+            string select_sql = "SELECT payloadFilePath FROM messages WHERE token = @token";
+            string? file_path = null;
             using (var cmd = new SQLiteCommand(select_sql, m_db))
             {
+                cmd.Parameters.AddWithValue("@token", token);
                 lock (this)
-                    file_path = (string)cmd.ExecuteScalar();
+                {
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        file_path = (string)result;
+                }
             }
             if (file_path == null)
                 return false;
 
             bool any_deleted = false;
-            string delete_sql = "DELETE FROM messages WHERE token = @token AND to = @to";
+            string delete_sql = "DELETE FROM messages WHERE token = @token AND toAddress = @to";
             using (var cmd = new SQLiteCommand(delete_sql, m_db))
             {
                 cmd.Parameters.AddWithValue("@token", token);
@@ -173,16 +182,20 @@ namespace msgfiles
             if (!any_deleted)
                 return false;
 
-            int remaining_count;
+            bool any_msgs_use_file;
             string count_remaining_sql = 
                 "SELECT COUNT(*) FROM messages WHERE payloadFilePath = @filePath";
             using (var cmd = new SQLiteCommand(count_remaining_sql, m_db))
             {
                 cmd.Parameters.AddWithValue("@filePath", file_path);
                 lock (this)
-                    remaining_count = (int)cmd.ExecuteScalar();
+                {
+                    object result = cmd.ExecuteScalar();
+                    any_msgs_use_file =
+                        !(result == null || result == DBNull.Value || (long)result == 0);
+                }
             }
-            if (remaining_count == 0 && File.Exists(file_path))
+            if (!any_msgs_use_file && File.Exists(file_path))
                 File.Delete(file_path);
 
             return true;
@@ -190,12 +203,12 @@ namespace msgfiles
 
         public int DeleteOldMessages(int maxAgeSeconds)
         {
-            var old_row_ids = new List<long>();
+            var old_token_twos = new Dictionary<string, string>();
             {
                 var now = DateTimeOffset.UtcNow;
                 var then = now - new TimeSpan(0, 0, maxAgeSeconds);
                 long oldest_epoch_seconds = then.ToUnixTimeSeconds();
-                string select_sql = "SELECT row_id FROM messages WHERE createdEpoch < @oldestEpoch";
+                string select_sql = "SELECT token, toAddress FROM messages WHERE createdEpoch < @oldestEpoch";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@oldestEpoch", oldest_epoch_seconds);
@@ -204,22 +217,17 @@ namespace msgfiles
                         using (var reader = cmd.ExecuteReader())
                         {
                             while (reader.Read())
-                                old_row_ids.Add(reader.GetInt64(0));
+                                old_token_twos.Add(reader.GetString(0), reader.GetString(1));
                         }
                     }
                 }
             }
 
-            string delete_sql = "DELETE FROM messages WHERE row_id = @rowId";
             int messages_deleted = 0;
-            foreach (var row_id in old_row_ids)
+            foreach (var kvp in old_token_twos)
             {
-                using (var cmd = new SQLiteCommand(delete_sql, m_db))
-                {
-                    cmd.Parameters.AddWithValue("@rowId", row_id);
-                    lock (this)
-                        messages_deleted += cmd.ExecuteNonQuery();
-                }
+                if (DeleteMessage(kvp.Key, kvp.Value))
+                    ++messages_deleted;
             }
             return messages_deleted;
         }

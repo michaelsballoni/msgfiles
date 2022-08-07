@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.IO;
 
 using NUnit.Framework;
@@ -14,49 +16,72 @@ namespace msgfiles
             if (File.Exists(db_file_path))
                 File.Delete(db_file_path);
 
+            string payload_file_path = "message_test_file_payload.txt";
+            File.WriteAllText(payload_file_path, "foobar");
+
             for (int run = 1; run <= 3; ++run)
             {
                 using (var db = new MessageStore(db_file_path))
                 {
-                    Session? session;
+                    ServerMessage send_msg =
+                        new ServerMessage()
+                        {
+                            from = "foo@bar.com",
+                            to = "blet@monkey.net",
+                            subject = "test message",
+                            body = "blah blah blah",
+                            manifest = "something else"
+                        };
+                    string msg_token = db.StoreMessage(send_msg, payload_file_path);
 
-                    session = db.GetSession("foobar");
-                    Assert.IsNull(session);
+                    string recv_payload_file_path;
+                    Assert.IsNull(db.GetMessage(msg_token, "bad@bad.com", out recv_payload_file_path));
 
-                    var new_session = db.CreateSession("a@b.c", "blet monkey");
+                    ServerMessage recv_msg =
+                        db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path);
+                    Assert.AreEqual(msg_token, recv_msg.token);
+                    Assert.AreEqual(send_msg.from, recv_msg.from);
+                    Assert.AreEqual(send_msg.to, recv_msg.to);
+                    Assert.AreEqual(send_msg.subject, recv_msg.subject);
+                    Assert.AreEqual(send_msg.body, recv_msg.body);
+                    Assert.AreEqual(send_msg.manifest, recv_msg.manifest);
+                    Assert.IsTrue((DateTimeOffset.UtcNow - recv_msg.created).TotalSeconds < 10);
 
-                    for (int get = 1; get <= 3; ++get)
-                    {
-                        session = db.GetSession(new_session.token);
-                        Assert.IsNotNull(session);
-                        if (session == null)
-                            return;
+                    Assert.AreEqual(0, db.GetMessages("bad@bad.com").Count);
 
-                        Assert.AreEqual(new_session.token, session.token);
-                        Assert.AreEqual("a@b.c", session.email);
-                        Assert.AreEqual("blet monkey", session.display);
-                    }
+                    List<ServerMessage> inbox = db.GetMessages(send_msg.to);
+                    Assert.AreEqual(1, inbox.Count);
+                    Assert.AreEqual(msg_token, inbox[0].token);
+                    Assert.AreEqual(send_msg.from, inbox[0].from);
+                    Assert.AreEqual(send_msg.to, inbox[0].to);
+                    Assert.AreEqual(send_msg.subject, inbox[0].subject);
+                    Assert.AreEqual(send_msg.body, inbox[0].body);
+                    Assert.AreEqual(send_msg.manifest, inbox[0].manifest);
 
-                    if (session != null)
-                    {
-                        Assert.IsTrue(db.DropSession(session.token));
-                        session = db.GetSession(new_session.token);
-                        Assert.IsNull(session);
-                    }
-                    else
-                        Assert.Fail();
-
-                    Assert.AreEqual(0, db.DropOldSessions(0));
+                    Assert.IsFalse(db.DeleteMessage(msg_token, "bad@bad.com"));
+                    Assert.IsTrue(db.DeleteMessage(msg_token, send_msg.to));
                 }
             }
 
-            using (var db = new SessionDb(db_file_path))
+            using (var db = new MessageStore(db_file_path))
             {
-                var new_session = db.CreateSession("f@g.h", "something else");
-                Thread.Sleep(2000);
-                Assert.AreEqual(1, db.DropOldSessions(1));
-                var session = db.GetSession(new_session.token);
-                Assert.IsNull(session);
+                ServerMessage send_msg =
+                    new ServerMessage()
+                    {
+                        from = "foo@bar.com",
+                        to = "blet@monkey.net",
+                        subject = "test message",
+                        body = "blah blah blah",
+                        manifest = "something else"
+                    };
+                string msg_token = db.StoreMessage(send_msg, payload_file_path);
+                
+                Thread.Sleep(2200);
+                
+                Assert.AreEqual(1, db.DeleteOldMessages(1));
+
+                string recv_payload_file_path;
+                Assert.IsNull(db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path));
             }
         }
     }

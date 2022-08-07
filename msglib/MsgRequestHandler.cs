@@ -12,9 +12,10 @@ namespace msgfiles
     {
         public static int MaxSendPayloadMB = 1024; // FORNOW - Load from config
 
-        public MsgRequestHandler(FileStore fileStore)
+        public MsgRequestHandler(FileStore fileStore, AllowBlock allowBlock)
         {
             m_fileStore = fileStore;
+            m_allowBlock = allowBlock;
         }
 
         public async Task<ServerResponse> HandleRequestAsync(ClientRequest request, HandlerContext ctxt)
@@ -162,7 +163,10 @@ namespace msgfiles
         private async Task<ServerResponse> HandleInboxRequestAsync(ClientRequest request, HandlerContext ctxt)
         {
             string to = ctxt.Auth["email"];
-            m_allowBlock.EnsureEmailAllowed();
+            m_allowBlock.EnsureEmailAllowed(to);
+            // FORNOW - Finish this
+            await Task.FromResult(0);
+            return HandlerContext.StandardResponse;
         }
 
         private AllowBlock m_allowBlock;

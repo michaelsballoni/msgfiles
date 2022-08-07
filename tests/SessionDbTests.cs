@@ -53,7 +53,7 @@ namespace msgfiles
             using (var db = new SessionDb(db_file_path))
             {
                 var new_session = db.CreateSession("f@g.h", "something else");
-                Thread.Sleep(2000);
+                Thread.Sleep(2200);
                 Assert.AreEqual(1, db.DropOldSessions(1));
                 var session = db.GetSession(new_session.token);
                 Assert.IsNull(session);

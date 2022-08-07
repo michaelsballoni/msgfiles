@@ -20,7 +20,7 @@ namespace msgfiles
 
     public class TestServerApp : IServerApp
     {
-        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore);
+        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore, m_allowBlock);
 
         public void Log(string message)
         {
@@ -73,6 +73,8 @@ namespace msgfiles
 
         private FileStore m_fileStore = 
             new FileStore(Path.Combine(Environment.CurrentDirectory, "msgfileStore"));
+
+        private AllowBlock m_allowBlock = new AllowBlock();
     }
 
     public class ClientServerTests

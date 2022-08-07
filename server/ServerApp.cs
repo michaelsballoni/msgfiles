@@ -107,7 +107,7 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
-        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore);
+        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore, m_allowBlock);
 
         public async Task SendMessageAsync(string from, string toos, string message)
         {
