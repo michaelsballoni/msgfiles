@@ -1,9 +1,8 @@
 ﻿using System.Text;
+using System.IO.Compression;
 using System.Security.Cryptography;
 
-using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Engines;
 
@@ -117,10 +116,31 @@ namespace msgfiles
             }
         }
 
-        // FORNOW - Add unit test!
         public static string PrepEmailForLookup(string email)
         {
             return ParseEmail(email).Key.ToLower();
+        }
+
+        public static byte[] Compress(ReadOnlySpan<byte> data)
+        {
+            using (var memStream = new MemoryStream())
+            using (var zipStream = new GZipStream(memStream, CompressionLevel.Fastest))
+            {
+                zipStream.Write(data);
+                zipStream.Flush();
+                return memStream.ToArray();
+            }
+        }
+
+        public static byte[] Decompress(byte[] data, int length = -1)
+        {
+            using (var inputStream = length < 0 ? new MemoryStream(data) : new MemoryStream(data, 0, length))
+            using (var outputStream = new MemoryStream())
+            using (var zipStream = new GZipStream(inputStream, CompressionMode.Decompress))
+            {
+                zipStream.CopyTo(outputStream);
+                return outputStream.ToArray();
+            }
         }
 
         public static string Encrypt(string plainText, string key)

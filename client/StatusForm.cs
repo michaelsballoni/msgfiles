@@ -82,15 +82,15 @@ namespace msgfiles
                         }
 
                         MsgClient msg_client = new MsgClient(client);
-                        if (msg_client.SendMsg(m_msg))
+                        if (msg_client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
                         {
                             MessageBox.Show("Message sent!");
                             success = true;
                             Close();
-                            return;
                         }
                         else
                             MessageBox.Show("Sending message failed!");
+                        return;
                     }
                 }
                 catch (NetworkException)
@@ -100,7 +100,9 @@ namespace msgfiles
                 }
                 catch (Exception exp)
                 {
+                    // FORNOW - If InputException, show just Message
                     MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
+                    return;
                 }
                 finally
                 {

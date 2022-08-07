@@ -23,8 +23,10 @@ namespace msgfiles
             {
                 using (var db = new MessageStore(db_file_path))
                 {
-                    ServerMessage send_msg =
-                        new ServerMessage()
+                    if (db == null)
+                        throw new NullReferenceException("db");
+                    msg send_msg =
+                        new msg()
                         {
                             from = "foo@bar.com",
                             to = "blet@monkey.net",
@@ -37,8 +39,9 @@ namespace msgfiles
                     string recv_payload_file_path;
                     Assert.IsNull(db.GetMessage(msg_token, "bad@bad.com", out recv_payload_file_path));
 
-                    ServerMessage recv_msg =
-                        db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path);
+                    msg recv_msg = db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path);
+                    if (recv_msg == null) 
+                        throw new NullReferenceException("recv_msg");
                     Assert.AreEqual(msg_token, recv_msg.token);
                     Assert.AreEqual(send_msg.from, recv_msg.from);
                     Assert.AreEqual(send_msg.to, recv_msg.to);
@@ -49,14 +52,11 @@ namespace msgfiles
 
                     Assert.AreEqual(0, db.GetMessages("bad@bad.com").Count);
 
-                    List<ServerMessage> inbox = db.GetMessages(send_msg.to);
+                    List<msg> inbox = db.GetMessages(send_msg.to);
                     Assert.AreEqual(1, inbox.Count);
                     Assert.AreEqual(msg_token, inbox[0].token);
                     Assert.AreEqual(send_msg.from, inbox[0].from);
-                    Assert.AreEqual(send_msg.to, inbox[0].to);
                     Assert.AreEqual(send_msg.subject, inbox[0].subject);
-                    Assert.AreEqual(send_msg.body, inbox[0].body);
-                    Assert.AreEqual(send_msg.manifest, inbox[0].manifest);
 
                     Assert.IsFalse(db.DeleteMessage(msg_token, "bad@bad.com"));
                     Assert.IsTrue(db.DeleteMessage(msg_token, send_msg.to));
@@ -65,8 +65,8 @@ namespace msgfiles
 
             using (var db = new MessageStore(db_file_path))
             {
-                ServerMessage send_msg =
-                    new ServerMessage()
+                msg send_msg =
+                    new msg()
                     {
                         from = "foo@bar.com",
                         to = "blet@monkey.net",

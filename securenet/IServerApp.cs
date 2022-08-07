@@ -54,7 +54,7 @@
         Task SendChallengeTokenAsync(string email, string display, string token);
 
         // Send a message
-        Task SendMessageAsync(string from, string toos, string message);
+        Task SendEmailAsync(string from, string toos, string message);
 
         // Sessions
         Session? GetSession(Dictionary<string, string> auth);

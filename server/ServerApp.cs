@@ -27,6 +27,8 @@ namespace msgfiles
 
             m_sessions = new SessionDb(Path.Combine(m_thisExeDirPath, "sessions.db"));
 
+            m_messageStore = new MessageStore(Path.Combine(m_thisExeDirPath, "messages.db"));
+
             m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
 
             m_emailClient =
@@ -107,9 +109,10 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
-        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore, m_allowBlock);
+        public IServerRequestHandler RequestHandler => 
+            new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
 
-        public async Task SendMessageAsync(string from, string toos, string message)
+        public async Task SendEmailAsync(string from, string toos, string message)
         {
             var from_kvp = Utils.ParseEmail(from);
             m_allowBlock.EnsureEmailAllowed(from_kvp.Key);
@@ -160,6 +163,7 @@ namespace msgfiles
         private EmailClient m_emailClient;
 
         private FileStore m_fileStore;
+        private MessageStore m_messageStore;
     }
 }
 

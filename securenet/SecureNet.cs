@@ -52,7 +52,7 @@ namespace msgfiles
         {
             string json = JsonConvert.SerializeObject(headers);
 
-            byte[] json_bytes = Encoding.UTF8.GetBytes(json);
+            byte[] json_bytes = Utils.Compress(Encoding.UTF8.GetBytes(json));
             if (json_bytes.Length > MaxSendObjectBytes)
                 throw new InputException("Too much to send");
 
@@ -66,7 +66,7 @@ namespace msgfiles
         {
             string json = JsonConvert.SerializeObject(headers);
 
-            byte[] json_bytes = Encoding.UTF8.GetBytes(json);
+            byte[] json_bytes = Utils.Compress(Encoding.UTF8.GetBytes(json));
             if (json_bytes.Length > MaxSendObjectBytes)
                 throw new InputException("Too much to send");
 
@@ -99,7 +99,7 @@ namespace msgfiles
                     read_yet += new_read;
             }
 
-            string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
+            string json = Encoding.UTF8.GetString(Utils.Decompress(header_bytes, bytes_length));
             var obj = JsonConvert.DeserializeObject<T>(json);
             if (obj == null)
                 throw new InputException("Input did not parse");
@@ -130,7 +130,7 @@ namespace msgfiles
                     read_yet += new_read;
             }
 
-            string json = Encoding.UTF8.GetString(header_bytes, 0, bytes_length);
+            string json = Encoding.UTF8.GetString(Utils.Decompress(header_bytes, bytes_length));
             var obj = JsonConvert.DeserializeObject<T>(json);
             if (obj == null)
                 throw new InputException("Input did not parse");

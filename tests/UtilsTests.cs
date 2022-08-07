@@ -80,6 +80,10 @@ namespace msgfiles
                 addr_name = Utils.ParseEmail("blet monkey <trick> <foo@bar.com>");
                 Assert.AreEqual("foo@bar.com", addr_name.Key);
                 Assert.AreEqual("blet monkey <trick>", addr_name.Value);
+
+                Assert.AreEqual("blet@monkey.com", Utils.PrepEmailForLookup("foo bar <blet@MONKEY.com>"));
+
+                Assert.AreEqual("foobar", Encoding.UTF32.GetString(Utils.Decompress(Utils.Compress(Encoding.UTF32.GetBytes("foobar")))));
             }
         }
     }

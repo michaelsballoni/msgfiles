@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 using Ionic.Zip;
+using Newtonsoft.Json;
 
 namespace msgfiles
 {
@@ -12,10 +9,11 @@ namespace msgfiles
     {
         public static int MaxSendPayloadMB = 1024; // FORNOW - Load from config
 
-        public MsgRequestHandler(FileStore fileStore, AllowBlock allowBlock)
+        public MsgRequestHandler(AllowBlock allowBlock, FileStore fileStore, MessageStore msgStore)
         {
-            m_fileStore = fileStore;
             m_allowBlock = allowBlock;
+            m_fileStore = fileStore;
+            m_msgStore = msgStore;
         }
 
         public async Task<ServerResponse> HandleRequestAsync(ClientRequest request, HandlerContext ctxt)
@@ -29,10 +27,24 @@ namespace msgfiles
                         return server_response;
                     }
 
-                case "INBOX":
+                case "POP":
                     {
                         ServerResponse server_response =
                             await HandleInboxRequestAsync(request, ctxt).ConfigureAwait(false);
+                        return server_response;
+                    }
+
+                case "GET":
+                    {
+                        ServerResponse server_response =
+                            await HandleGetRequestAsync(request, ctxt).ConfigureAwait(false);
+                        return server_response;
+                    }
+
+                case "DELETE":
+                    {
+                        ServerResponse server_response =
+                            await HandleDeleteRequestAsync(request, ctxt).ConfigureAwait(false);
                         return server_response;
                     }
 
@@ -80,7 +92,6 @@ namespace msgfiles
 
             Log(ctxt, $"Sending: To: {to} - Subject: {subject}");
 
-            // Save the ZIP to disk
             string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             string stored_file_path = "";
             try
@@ -133,23 +144,36 @@ namespace msgfiles
                 File.Delete(temp_zip_file_path);
                 temp_zip_file_path = "";
 
-                // FORNOW
-                // Store the ZIP file, key -> path
-                // Store the messages to the to addresses
+                Log(ctxt, $"Storing messages");
+                string email_from = $"{ctxt.Auth["display"]} <{ctxt.Auth["email"]}>";
+                var toos = to.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0);
+                foreach (var too in toos)
+                {
+                    m_msgStore.StoreMessage
+                    (
+                        new msg()
+                        {
+                            from = email_from,
+                            to = too,
+                            subject = subject,
+                            body = body,
+                            manifest = zip_manifest
+                        },
+                        stored_file_path
+                    );
+                }
+                stored_file_path = "";
 
                 Log(ctxt, $"Sending email");
-
                 string email_body =
-                    $"msgfiles from {ctxt.Auth["display"]} ({ctxt.Auth["email"]}): {subject}\n\n" +
+                    $"msgfiles from {email_from}: {subject}\n\n" +
                     $"{body}\n\n" +
-                    $"Run the msgfiles application, open this message there, and enter this password to access these files:\n\n" +
+                    $"Run the msgfiles application, open this message there, and enter this password:\n\n" +
                     $"Password: {pwd}\n\n" +
-                    $"If you do not recogize the sender or anything looks suspicious in the list of files below, reply to this email to report it.\n\n" +
+                    $"If you do not recogize the sender or anything looks suspicious in this message or the list of files below, reply to this email to report it.\n\n" +
                     $"Here are the files you have been sent.\n\n" +
                     zip_manifest;
-
-                string email_from = $"{ctxt.Auth["display"]} <{ctxt.Auth["email"]}>";
-                await ctxt.App.SendMessageAsync(email_from, to, email_body);
+                await ctxt.App.SendEmailAsync(email_from, to, email_body);
 
                 return HandlerContext.StandardResponse;
             }
@@ -157,6 +181,9 @@ namespace msgfiles
             {
                 if (temp_zip_file_path != "" && File.Exists(temp_zip_file_path))
                     File.Delete(temp_zip_file_path);
+
+                if (stored_file_path != "" && File.Exists(stored_file_path))
+                    File.Delete(stored_file_path);
             }
         }
 
@@ -164,12 +191,114 @@ namespace msgfiles
         {
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
-            // FORNOW - Finish this
+
+            var msgs = m_msgStore.GetMessages(to);
+
+            var msgs_json = JsonConvert.SerializeObject(msgs);
+            // FORNOW - Compress the JSON
+            // FORNOW - Write the JSON to the output stream, a MemoryStream
+
+            var response =
+                new ServerResponse()
+                {
+                    version = 1,
+                    statusCode = 200,
+                    statusMessage = "OK",
+                    headers = new Dictionary<string, string>() { }
+                };
             await Task.FromResult(0);
-            return HandlerContext.StandardResponse;
+            return response;
+        }
+
+        private async Task<ServerResponse> HandleGetRequestAsync(ClientRequest request, HandlerContext ctxt)
+        {
+            string to = ctxt.Auth["email"];
+            m_allowBlock.EnsureEmailAllowed(to);
+
+            Utils.NormalizeDict(request.headers, new[] { "token" });
+
+            string package_file_path;
+            var msg = m_msgStore.GetMessage(request.headers["token"], to, out package_file_path);
+            if (msg == null)
+            {
+                var response_404 =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "Message Not Found",
+                        headers = new Dictionary<string, string>()
+                    };
+                return response_404;
+            }
+
+            if (!File.Exists(package_file_path))
+            {
+                var response_404 =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "File Not Found",
+                        headers = new Dictionary<string, string>()
+                    };
+                return response_404;
+            }
+
+            var response =
+                new ServerResponse()
+                {
+                    version = 1,
+                    statusCode = 200,
+                    statusMessage = "OK",
+                    headers = 
+                        new Dictionary<string, string>() 
+                        { 
+                            { "msg", JsonConvert.SerializeObject(msg) },
+                            { "fileLength", new FileInfo(package_file_path).Length.ToString() }
+                        },
+                    streamToSend = File.OpenRead(package_file_path)
+                };
+            await Task.FromResult(0);
+            return response;
+        }
+
+        private async Task<ServerResponse> HandleDeleteRequestAsync(ClientRequest request, HandlerContext ctxt)
+        {
+            string to = ctxt.Auth["email"];
+            m_allowBlock.EnsureEmailAllowed(to);
+
+            Utils.NormalizeDict(request.headers, new[] { "token" });
+
+            ServerResponse response;
+            if (!m_msgStore.DeleteMessage(request.headers["token"], to))
+            {
+                response =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "Message Not Found",
+                        headers = new Dictionary<string, string>()
+                    };
+            }
+            else
+            {
+                response =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 204,
+                        statusMessage = "Message Deleted",
+                        headers = new Dictionary<string, string>()
+                    };
+            }
+            await Task.FromResult(0);
+            return response;
         }
 
         private AllowBlock m_allowBlock;
         private FileStore m_fileStore;
+        private MessageStore m_msgStore;
     }
 }

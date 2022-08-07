@@ -20,7 +20,21 @@ namespace msgfiles
 
     public class TestServerApp : IServerApp
     {
-        public IServerRequestHandler RequestHandler => new MsgRequestHandler(m_fileStore, m_allowBlock);
+        public IServerRequestHandler RequestHandler => 
+            new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
+
+        public TestServerApp()
+        {
+            string msg_file_store_dir_path = Path.Combine(Environment.CurrentDirectory, "msgfileStore");
+            if (Directory.Exists(msg_file_store_dir_path))
+                Directory.Delete(msg_file_store_dir_path);
+            m_fileStore = new FileStore(msg_file_store_dir_path);
+
+            string msg_store_db_file_path = Path.Combine(Environment.CurrentDirectory, "messages.db");
+            if (File.Exists(msg_store_db_file_path))
+                File.Delete(msg_store_db_file_path);
+            m_messageStore = new MessageStore(msg_store_db_file_path);
+        }
 
         public void Log(string message)
         {
@@ -33,7 +47,7 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendMessageAsync(string from, string toos, string message)
+        public async Task SendEmailAsync(string from, string toos, string message)
         {
             Message = message;
             await Task.FromResult(0);
@@ -71,8 +85,8 @@ namespace msgfiles
 
         private Session? m_session = null;
 
-        private FileStore m_fileStore = 
-            new FileStore(Path.Combine(Environment.CurrentDirectory, "msgfileStore"));
+        private FileStore m_fileStore;
+        private MessageStore m_messageStore;
 
         private AllowBlock m_allowBlock = new AllowBlock();
     }
@@ -120,9 +134,9 @@ namespace msgfiles
 
                     // FORNOW
                     // Loop over X 3...
+                        // Enumerate Inbox, Opening Each Msg
                         // Enumerate Inbox, Deleting Each Msg
                         // Test Sending Msg X 4
-                        // Enumerate Inbox, Opening Each Msg
                 }
             }
         }

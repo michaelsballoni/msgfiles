@@ -54,7 +54,7 @@ namespace msgfiles
             }
         }
 
-        public string StoreMessage(ServerMessage msg, string payloadFilePath)
+        public string StoreMessage(msg msg, string payloadFilePath)
         {
             if (m_db == null)
                 throw new NullReferenceException("m_db");
@@ -81,11 +81,11 @@ namespace msgfiles
             return token;
         }
 
-        public List<ServerMessage> GetMessages(string to)
+        public List<msg> GetMessages(string to)
         {
-            var output = new List<ServerMessage>();
+            var output = new List<msg>();
             string select_sql =
-                "SELECT token, fromAddress, toAddress, subject, body, manifest, createdEpoch " +
+                "SELECT token, fromAddress, subject, createdEpoch " +
                 "FROM messages WHERE toAddress = @to ORDER BY createdEpoch DESC";
             using (var cmd = new SQLiteCommand(select_sql, m_db))
             {
@@ -96,16 +96,13 @@ namespace msgfiles
                     {
                         while (reader.Read())
                         {
-                            ServerMessage msg =
-                                new ServerMessage()
+                            msg msg =
+                                new msg()
                                 {
                                     token = reader.GetString(0),
                                     from = reader.GetString(1),
-                                    to = reader.GetString(2),
-                                    subject = reader.GetString(3),
-                                    body = reader.GetString(4),
-                                    manifest = reader.GetString(5),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(6))
+                                    subject = reader.GetString(2),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(3))
                                 };
                             output.Add(msg);
                         }
@@ -115,7 +112,7 @@ namespace msgfiles
             return output;
         }
 
-        public ServerMessage? GetMessage(string token, string to, out string payloadFilePath)
+        public msg? GetMessage(string token, string to, out string payloadFilePath)
         {
             payloadFilePath = "";
 
@@ -133,8 +130,8 @@ namespace msgfiles
                     {
                         if (reader.Read())
                         {
-                            ServerMessage msg =
-                                new ServerMessage()
+                            msg msg =
+                                new msg()
                                 {
                                     token = reader.GetString(0),
                                     from = reader.GetString(1),

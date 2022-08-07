@@ -9,7 +9,7 @@ namespace msgfiles
             m_client = client;
         }
 
-        public bool SendMsg(ClientMessage msg)
+        public bool SendMsg(List<string> to, string subject, string body, List<string> paths)
         {
             string pwd = Utils.GenToken();
             string zip_file_path =
@@ -25,7 +25,7 @@ namespace msgfiles
                     zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
                     zip.Password = pwd;
 
-                    foreach (var path in msg.Paths)
+                    foreach (var path in paths)
                     {
                         if (File.Exists(path))
                             zip.AddFile(path);
@@ -48,9 +48,9 @@ namespace msgfiles
                         verb = "SEND",
                         headers = new Dictionary<string, string>()
                         {
-                            { "to", string.Join("; ", msg.To) },
-                            { "subject", msg.Subject },
-                            { "body", msg.Body },
+                            { "to", string.Join("; ", to) },
+                            { "subject", subject },
+                            { "body", body },
                             { "pwd", pwd },
                             { "packageSizeBytes", zip_file_size_bytes.ToString() }
                         }
@@ -82,12 +82,14 @@ namespace msgfiles
                     return false;
 
                 m_client.App.Log("Receiving response...");
-                var send_response = SecureNet.ReadObject<ServerResponse>(m_client.Stream);
-                m_client.App.Log($"Server Response: {send_response.ResponseSummary}");
-                if (send_response.statusCode / 100 != 2)
-                    throw send_response.CreateException();
-                else
-                    return true;
+                using (var send_response = SecureNet.ReadObject<ServerResponse>(m_client.Stream))
+                {
+                    m_client.App.Log($"Server Response: {send_response.ResponseSummary}");
+                    if (send_response.statusCode / 100 != 2)
+                        throw send_response.CreateException();
+                    else
+                        return true;
+                }
             }
             finally
             {
@@ -95,6 +97,23 @@ namespace msgfiles
                     File.Delete(zip_file_path);
             }
         }
+
+        /* FORNOW - Finish this
+        public List<msg> GetMessages()
+        {
+
+        }
+
+        public msg GetMessage(msg m)
+        {
+            
+        }
+
+        public void DeleteMessage(msg m)
+        {
+            
+        }
+        */
 
         private void Zip_SaveProgress(object? sender, SaveProgressEventArgs e)
         {

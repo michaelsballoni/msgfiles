@@ -129,10 +129,17 @@ namespace msgfiles
                     var client_request = await SecureNet.ReadObjectAsync<ClientRequest>(m_stream).ConfigureAwait(false);
 
                     Log("Handling request...");
-                    var server_response = await request_handler.HandleRequestAsync(client_request, handler_ctxt).ConfigureAwait(false);
-
-                    Log("Sending response...");
-                    await SecureNet.SendObjectAsync(m_stream, server_response).ConfigureAwait(false);
+                    using (var server_response = await request_handler.HandleRequestAsync(client_request, handler_ctxt).ConfigureAwait(false))
+                    { 
+                        Log("Sending response header...");
+                        await SecureNet.SendObjectAsync(m_stream, server_response).ConfigureAwait(false);
+                        if (server_response.streamToSend != null)
+                        {
+                            Log("Sending response payload...");
+                            await server_response.streamToSend.CopyToAsync(m_stream, 64 * 1024).ConfigureAwait(false); ;
+                        }
+                    }
+                    Log("Request handled.");
                 }
             }
             catch (SocketException)
@@ -163,7 +170,6 @@ namespace msgfiles
                 catch { }
             }
         }
-
 
         private void Log(string message)
         {

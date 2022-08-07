@@ -28,10 +28,20 @@ namespace msgfiles
         public string verb { get; set; } = "";
     }
 
-    public class ServerResponse : Headered
+    public class ServerResponse : Headered, IDisposable
     {
+        public void Dispose()
+        {
+            if (streamToSend != null)
+            {
+                streamToSend.Dispose();
+                streamToSend = null;
+            }
+        }
+
         public int statusCode { get; set; }
         public string statusMessage { get; set; } = "";
+        public Stream? streamToSend { get; set; }
 
         [JsonIgnore]
         public int BaseCode => statusCode / 100;
