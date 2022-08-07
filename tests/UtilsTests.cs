@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 using NUnit.Framework;
 
@@ -17,7 +18,7 @@ namespace msgfiles
             string str_back = Encoding.UTF8.GetString(bytes_back);
             Assert.AreEqual(test_str, str_back);
 
-            string hash = Utils.Hash256Str("foobar");
+            string hash = Utils.HashString("foobar");
             Assert.IsTrue(!string.IsNullOrWhiteSpace(hash));
 
             Assert.AreEqual(6, Utils.GenChallenge().Length);
@@ -77,13 +78,20 @@ namespace msgfiles
                 Assert.AreEqual("foo@bar.com", addr_name.Key);
                 Assert.AreEqual("blet monkey", addr_name.Value);
 
-                addr_name = Utils.ParseEmail("blet monkey <trick> <foo@bar.com>");
-                Assert.AreEqual("foo@bar.com", addr_name.Key);
-                Assert.AreEqual("blet monkey <trick>", addr_name.Value);
-
+                try
+                {
+                    addr_name = Utils.ParseEmail("blet monkey <trick> <foo@bar.com>");
+                    Assert.Fail();
+                }
+                catch (InputException) {}
+                    
                 Assert.AreEqual("blet@monkey.com", Utils.PrepEmailForLookup("foo bar <blet@MONKEY.com>"));
 
                 Assert.AreEqual("foobar", Encoding.UTF32.GetString(Utils.Decompress(Utils.Compress(Encoding.UTF32.GetBytes("foobar")))));
+
+                string sync_hash = Utils.HashStream(new MemoryStream(Encoding.UTF32.GetBytes("foobar")));
+                string async_hash = Utils.HashStreamAsync(new MemoryStream(Encoding.UTF32.GetBytes("foobar"))).Result;
+                Assert.AreEqual(sync_hash, async_hash);
             }
         }
     }

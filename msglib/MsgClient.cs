@@ -2,11 +2,11 @@
 
 namespace msgfiles
 {
-    public class MsgClient
+    public class MsgClient : Client
     {
-        public MsgClient(Client client)
+        public MsgClient(IClientApp app)
+            : base(app)
         {
-            m_client = client;
         }
 
         public bool SendMsg(List<string> to, string subject, string body, List<string> paths)
@@ -18,7 +18,7 @@ namespace msgfiles
             {
                 using (var zip = new ZipFile(zip_file_path))
                 {
-                    m_client.App.Log("Adding files to package...");
+                    App.Log("Adding files to package...");
                     m_lastZipCurrentFilename = "";
                     zip.SaveProgress += Zip_SaveProgress;
 
@@ -35,11 +35,14 @@ namespace msgfiles
                             throw new Exception($"Item to send not found: {path}");
                     }
 
-                    m_client.App.Log("Saving package...");
+                    App.Log("Saving package...");
                     zip.Save();
                 }
 
-                m_client.App.Log("Sending header...");
+                App.Log("Scanning package...");
+                string zip_hash = Utils.HashStream(File.OpenRead(zip_file_path));
+
+                App.Log("Sending message...");
                 long zip_file_size_bytes = new FileInfo(zip_file_path).Length;
                 var send_request =
                     new ClientRequest()
@@ -52,17 +55,17 @@ namespace msgfiles
                             { "subject", subject },
                             { "body", body },
                             { "pwd", pwd },
-                            { "packageSizeBytes", zip_file_size_bytes.ToString() }
+                            { "packageSizeBytes", zip_file_size_bytes.ToString() },
+                            { "packageHash", zip_hash }
                         }
                     };
-                if (m_client.Stream == null)
+                if (ServerStream == null)
                     return false;
-                SecureNet.SendObject(m_client.Stream, send_request);
+                SecureNet.SendObject(ServerStream, send_request);
 
-                m_client.App.Log("Sending package...");
+                App.Log("Sending package...");
                 using (var zip_file_stream = File.OpenRead(zip_file_path))
                 {
-                    int zip_file_size_mb = (int)Math.Max(zip_file_size_bytes / 1024 / 1024, 1);
                     long sent_yet = 0;
                     byte[] buffer = new byte[64 * 1024];
                     while (sent_yet < zip_file_size_bytes)
@@ -70,21 +73,21 @@ namespace msgfiles
                         int to_read = (int)Math.Min(buffer.Length, zip_file_size_bytes - sent_yet);
                         int read = zip_file_stream.Read(buffer, 0, to_read);
 
-                        m_client.Stream.Write(buffer, 0, read);
+                        ServerStream.Write(buffer, 0, read);
                         sent_yet += read;
 
-                        m_client.App.Progress((double)sent_yet / zip_file_size_bytes);
-                        if (m_client.App.Cancelled)
+                        App.Progress((double)sent_yet / zip_file_size_bytes);
+                        if (App.Cancelled)
                             return false;
                     }
                 }
-                if (m_client.App.Cancelled)
+                if (App.Cancelled)
                     return false;
 
-                m_client.App.Log("Receiving response...");
-                using (var send_response = SecureNet.ReadObject<ServerResponse>(m_client.Stream))
+                App.Log("Receiving response...");
+                using (var send_response = SecureNet.ReadObject<ServerResponse>(ServerStream))
                 {
-                    m_client.App.Log($"Server Response: {send_response.ResponseSummary}");
+                    App.Log($"Server Response: {send_response.ResponseSummary}");
                     if (send_response.statusCode / 100 != 2)
                         throw send_response.CreateException();
                     else
@@ -101,7 +104,14 @@ namespace msgfiles
         /* FORNOW - Finish this
         public List<msg> GetMessages()
         {
-
+            var request =
+                new ClientRequest()
+                {
+                    version = 1,
+                    verb = "POP",
+                    headers = new Dictionary<string, string>() { }
+                };
+            // FORNOW
         }
 
         public msg GetMessage(msg m)
@@ -117,7 +127,7 @@ namespace msgfiles
 
         private void Zip_SaveProgress(object? sender, SaveProgressEventArgs e)
         {
-            if (m_client.App.Cancelled)
+            if (App.Cancelled)
             {
                 e.Cancel = true;
                 return;
@@ -126,7 +136,7 @@ namespace msgfiles
             if (e.CurrentEntry != null && e.CurrentEntry.FileName != m_lastZipCurrentFilename)
             {
                 m_lastZipCurrentFilename = e.CurrentEntry.FileName;
-                m_client.App.Log(m_lastZipCurrentFilename);
+                App.Log(m_lastZipCurrentFilename);
             }
 
             double min_progress =
@@ -135,10 +145,9 @@ namespace msgfiles
                     (double)e.EntriesSaved / Math.Min(e.EntriesTotal, 1),
                     (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
                 );
-            m_client.App.Progress(min_progress);
+            App.Progress(min_progress);
         }
 
-        private Client m_client;
         private string m_lastZipCurrentFilename = "";
     }
 }

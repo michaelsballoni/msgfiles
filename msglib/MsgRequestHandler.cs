@@ -65,7 +65,7 @@ namespace msgfiles
             (
                 request.headers,
                 new[]
-                { "to", "subject", "body", "pwd", "packageSizeBytes" }
+                { "to", "subject", "body", "pwd", "packageSizeBytes", "packageHash" }
             );
 
             string to = request.headers["to"];
@@ -90,6 +90,10 @@ namespace msgfiles
             if (package_size_bytes / 1024 / 1024 > MaxSendPayloadMB)
                 throw new InputException("Header invalid: package too big");
 
+            string sent_zip_hash = request.headers["packageHash"];
+            if (sent_zip_hash == "")
+                throw new InputException("Header missing: packageHash");
+
             Log(ctxt, $"Sending: To: {to} - Subject: {subject}");
 
             string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
@@ -112,8 +116,16 @@ namespace msgfiles
                     }
                 }
 
+                Log(ctxt, $"Hashing ZIP");
+                string local_zip_hash =
+                    await Utils.HashStreamAsync(File.OpenRead(temp_zip_file_path)).ConfigureAwait(false);
+                if (local_zip_hash != sent_zip_hash)
+                    throw new InputException("Received file contents do not match what was sent");
+
                 Log(ctxt, $"Inventorying ZIP");
                 string zip_manifest;
+                int file_count = 0;
+                long file_total_size_bytes = 0;
                 {
                     StringBuilder sb = new StringBuilder();
                     using (var zip_file = new ZipFile(temp_zip_file_path))
@@ -134,6 +146,8 @@ namespace msgfiles
                                     size_str = $"{size} bytes";
                             }
                             sb.AppendLine($"{zip_entry.FileName} ({size_str})");
+                            ++file_count;
+                            file_total_size_bytes += zip_entry.UncompressedSize;
                         }
                     }
                     zip_manifest = sb.ToString();
@@ -159,7 +173,10 @@ namespace msgfiles
                             body = body,
                             manifest = zip_manifest
                         },
-                        stored_file_path
+                        stored_file_path,
+                        file_count,
+                        file_total_size_bytes / 1024.0 / 1024.0,
+                        local_zip_hash
                     );
                 }
                 stored_file_path = "";
@@ -192,11 +209,16 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
-            var msgs = m_msgStore.GetMessages(to);
-
-            var msgs_json = JsonConvert.SerializeObject(msgs);
-            // FORNOW - Compress the JSON
-            // FORNOW - Write the JSON to the output stream, a MemoryStream
+            var msgs_json_stream = new MemoryStream();
+            Utils.Compress
+            (
+                Encoding.UTF8.GetBytes
+                (
+                    JsonConvert.SerializeObject(m_msgStore.GetMessages(to))
+                ),
+                msgs_json_stream
+            );
+            msgs_json_stream.Seek(0, SeekOrigin.Begin);
 
             var response =
                 new ServerResponse()
@@ -204,7 +226,8 @@ namespace msgfiles
                     version = 1,
                     statusCode = 200,
                     statusMessage = "OK",
-                    headers = new Dictionary<string, string>() { }
+                    headers = new Dictionary<string, string>() { { "inboxResponseLength", msgs_json_stream.Length.ToString() } }
+                    streamToSend = msgs_json_stream
                 };
             await Task.FromResult(0);
             return response;
@@ -215,7 +238,15 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
-            Utils.NormalizeDict(request.headers, new[] { "token" });
+            Utils.NormalizeDict(request.headers, new[] { "token", "getPackage" });
+
+            string token = request.headers["token"];
+            if (token.Length == 0)
+                throw new InputException("Header missing: token");
+
+            bool should_get_package;
+            if (!bool.TryParse(request.headers["getPackage"], out should_get_package))
+                throw new InputException("Header missing: getPackage");
 
             string package_file_path;
             var msg = m_msgStore.GetMessage(request.headers["token"], to, out package_file_path);
@@ -257,7 +288,7 @@ namespace msgfiles
                             { "msg", JsonConvert.SerializeObject(msg) },
                             { "fileLength", new FileInfo(package_file_path).Length.ToString() }
                         },
-                    streamToSend = File.OpenRead(package_file_path)
+                    streamToSend = should_get_package ? File.OpenRead(package_file_path) : null
                 };
             await Task.FromResult(0);
             return response;

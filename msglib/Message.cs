@@ -8,6 +8,9 @@
         public string subject { get; set; } = "";
         public string body { get; set; } = "";
         public string manifest { get; set; } = "";
+        public int fileCount { get; set; } = 0;
+        public double fileSizeMB { get; set; } = 0.0;
+        public string fileHash { get; set; } = "";
         public DateTimeOffset created { get; set; }
     }
 }

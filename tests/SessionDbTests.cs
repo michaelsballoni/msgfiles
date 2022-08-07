@@ -16,7 +16,7 @@ namespace msgfiles
 
             for (int run = 1; run <= 3; ++run)
             {
-                using (var db = new SessionDb(db_file_path))
+                using (var db = new SessionStore(db_file_path))
                 {
                     Session? session;
 
@@ -50,7 +50,7 @@ namespace msgfiles
                 }
             }
 
-            using (var db = new SessionDb(db_file_path))
+            using (var db = new SessionStore(db_file_path))
             {
                 var new_session = db.CreateSession("f@g.h", "something else");
                 Thread.Sleep(2200);

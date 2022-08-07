@@ -68,7 +68,7 @@
                     if (drive.DriveType == DriveType.Fixed && drive.IsReady)
                     {
                         return
-                            Utils.Hash256Str
+                            Utils.HashString
                             (
                                 drive.VolumeLabel + "|" +
                                 drive.DriveFormat + "|" +

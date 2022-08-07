@@ -43,7 +43,7 @@ namespace msgfiles
             {
                 try
                 {
-                    using (var client = new Client(this))
+                    using (var client = new MsgClient(this))
                     {
                         while (!Cancelled)
                         {
@@ -81,8 +81,7 @@ namespace msgfiles
                             }
                         }
 
-                        MsgClient msg_client = new MsgClient(client);
-                        if (msg_client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
+                        if (client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
                         {
                             MessageBox.Show("Message sent!");
                             success = true;
@@ -100,8 +99,11 @@ namespace msgfiles
                 }
                 catch (Exception exp)
                 {
-                    // FORNOW - If InputException, show just Message
-                    MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
+                    exp = Utils.SmashExp(exp);
+                    if (exp is InputException)
+                        MessageBox.Show(exp.Message);
+                    else
+                        MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
                     return;
                 }
                 finally

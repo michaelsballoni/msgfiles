@@ -34,7 +34,7 @@ namespace msgfiles
                             body = "blah blah blah",
                             manifest = "something else"
                         };
-                    string msg_token = db.StoreMessage(send_msg, payload_file_path);
+                    string msg_token = db.StoreMessage(send_msg, payload_file_path, 1, 1.0, "");
 
                     string recv_payload_file_path;
                     Assert.IsNull(db.GetMessage(msg_token, "bad@bad.com", out recv_payload_file_path));
@@ -74,7 +74,7 @@ namespace msgfiles
                         body = "blah blah blah",
                         manifest = "something else"
                     };
-                string msg_token = db.StoreMessage(send_msg, payload_file_path);
+                string msg_token = db.StoreMessage(send_msg, payload_file_path, 1, 1.0, "");
                 
                 Thread.Sleep(2200);
                 

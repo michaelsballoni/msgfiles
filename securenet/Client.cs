@@ -18,13 +18,13 @@ namespace msgfiles
         {
             try
             {
-                if (Stream != null)
+                if (ServerStream != null)
                 {
-                    Stream.Dispose();
+                    ServerStream.Dispose();
                 }
             }
             catch { }
-            Stream = null;
+            ServerStream = null;
 
             try
             {
@@ -59,7 +59,7 @@ namespace msgfiles
                 return false;
 
             App.Log($"Securing connection...");
-            Stream = SecureNet.SecureConnectionToServer(m_client, serverHostname);
+            ServerStream = SecureNet.SecureConnectionToServer(m_client, serverHostname);
             if (App.Cancelled)
                 return false;
 
@@ -77,11 +77,11 @@ namespace msgfiles
                             { "session", SessionToken }
                         }
                 };
-            SecureNet.SendObject(Stream, auth_request);
+            SecureNet.SendObject(ServerStream, auth_request);
             if (App.Cancelled)
                 return false;
 
-            var auth_response = SecureNet.ReadObject<ServerResponse>(Stream);
+            var auth_response = SecureNet.ReadObject<ServerResponse>(ServerStream);
             App.Log($"Server Response: {auth_response.ResponseSummary}");
             switch (auth_response.statusCode)
             {
@@ -105,11 +105,11 @@ namespace msgfiles
                     verb = "CHALLENGE",
                     headers = new Dictionary<string, string>() { { "challenge", challengeToken } }
                 };
-            if (Stream == null)
+            if (ServerStream == null)
                 throw new NetworkException("Not connected");
-            SecureNet.SendObject(Stream, auth_submit);
+            SecureNet.SendObject(ServerStream, auth_submit);
 
-            var auth_response = SecureNet.ReadObject<ServerResponse>(Stream);
+            var auth_response = SecureNet.ReadObject<ServerResponse>(ServerStream);
             App.Log($"Server Response: {auth_response.ResponseSummary}");
             switch (auth_response.statusCode)
             {
@@ -123,7 +123,7 @@ namespace msgfiles
 
 
         public IClientApp App;
-        public Stream? Stream;
+        public Stream? ServerStream;
 
         public string SessionToken = "";
 

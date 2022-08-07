@@ -8,9 +8,9 @@ using System.Data.SQLite;
 
 namespace msgfiles
 {
-    public class SessionDb : IDisposable
+    public class SessionStore : IDisposable
     {
-        public SessionDb(string dbFilePath)
+        public SessionStore(string dbFilePath)
         {
             bool file_existed = File.Exists(dbFilePath);
 
@@ -49,29 +49,22 @@ namespace msgfiles
 
         public Session? GetSession(string token)
         {
-            bool exists = false;
-            string update_sql =
-            "UPDATE sessions SET lastaccessEpoch = @epochSeconds WHERE token = @token";
-            using (var cmd = new SQLiteCommand(update_sql, m_db))
+            lock (this)
             {
-                cmd.Parameters.AddWithValue("@token", token);
-                cmd.Parameters.AddWithValue("@epochSeconds", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-                lock (this)
+                string update_sql =
+                    "UPDATE sessions SET lastaccessEpoch = @epochSeconds WHERE token = @token";
+                using (var cmd = new SQLiteCommand(update_sql, m_db))
                 {
-                    int affected = cmd.ExecuteNonQuery();
-                    if (affected > 0)
-                        exists = true;
+                    cmd.Parameters.AddWithValue("@token", token);
+                    cmd.Parameters.AddWithValue("@epochSeconds", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                    if (cmd.ExecuteNonQuery() == 0)
+                        return null;
                 }
-            }
-            if (!exists)
-                return null;
 
-            string select_sql = "SELECT email, display FROM sessions WHERE token = @token";
-            using (var cmd = new SQLiteCommand(select_sql, m_db))
-            {
-                cmd.Parameters.AddWithValue("@token", token);
-                lock (this)
+                string select_sql = "SELECT email, display FROM sessions WHERE token = @token";
+                using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
+                    cmd.Parameters.AddWithValue("@token", token);
                     using (var reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
@@ -93,42 +86,49 @@ namespace msgfiles
 
         public Session CreateSession(string email, string display)
         {
-            string token = Guid.NewGuid().ToString();
-            string insert_sql =
-                "INSERT INTO sessions (token, email, display, lastaccessEpoch) " +
-                                "VALUES (@token, @email, @display, @epochSeconds)";
-            using (var cmd = new SQLiteCommand(insert_sql, m_db))
+            lock (this)
             {
-                cmd.Parameters.AddWithValue("@token", token);
-                cmd.Parameters.AddWithValue("@email", email);
-                cmd.Parameters.AddWithValue("@display", display);
-                cmd.Parameters.AddWithValue("@epochSeconds", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-                lock (this)
-                    cmd.ExecuteNonQuery();
-            }
-            return
-                new Session()
+                string token = Guid.NewGuid().ToString();
+
+                string insert_sql =
+                    "INSERT INTO sessions (token, email, display, lastaccessEpoch) " +
+                                    "VALUES (@token, @email, @display, @epochSeconds)";
+                using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
-                    token = token,
-                    email = email,
-                    display = display
-                };
+                    cmd.Parameters.AddWithValue("@token", token);
+                    cmd.Parameters.AddWithValue("@email", email);
+                    cmd.Parameters.AddWithValue("@display", display);
+                    cmd.Parameters.AddWithValue("@epochSeconds", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                    cmd.ExecuteNonQuery();
+                }
+
+                return
+                    new Session()
+                    {
+                        token = token,
+                        email = email,
+                        display = display
+                    };
+            }
         }
 
         public bool DropSession(string token)
         {
-            string delete_sql = "DELETE FROM sessions WHERE token = @token";
-            using (var cmd = new SQLiteCommand(delete_sql, m_db))
+            lock (this)
             {
-                cmd.Parameters.AddWithValue("@token", token);
-                lock (this)
+                string delete_sql = "DELETE FROM sessions WHERE token = @token";
+                using (var cmd = new SQLiteCommand(delete_sql, m_db))
+                {
+                    cmd.Parameters.AddWithValue("@token", token);
                     return cmd.ExecuteNonQuery() > 0;
+                }
             }
         }
 
         public int DropOldSessions(int maxAgeSeconds)
         {
             List<string> old_session_tokens = new List<string>();
+            lock (this)
             {
                 var now = DateTimeOffset.UtcNow;
                 var then = now - new TimeSpan(0, 0, maxAgeSeconds);
@@ -137,13 +137,10 @@ namespace msgfiles
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@oldestEpoch", oldest_epoch_seconds);
-                    lock (this)
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                                old_session_tokens.Add(reader.GetString(0));
-                        }
+                        while (reader.Read())
+                            old_session_tokens.Add(reader.GetString(0));
                     }
                 }
             }

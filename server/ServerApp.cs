@@ -25,7 +25,7 @@ namespace msgfiles
             m_txtFilesWatcher.Deleted += TextWatcher_Changed;
             TextWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
-            m_sessions = new SessionDb(Path.Combine(m_thisExeDirPath, "sessions.db"));
+            m_sessions = new SessionStore(Path.Combine(m_thisExeDirPath, "sessions.db"));
 
             m_messageStore = new MessageStore(Path.Combine(m_thisExeDirPath, "messages.db"));
 
@@ -151,7 +151,7 @@ namespace msgfiles
                 return new HashSet<string>();
         }
 
-        private SessionDb m_sessions;
+        private SessionStore m_sessions;
 
         private Settings m_settings;
         private AllowBlock m_allowBlock = new AllowBlock();

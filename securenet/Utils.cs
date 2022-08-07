@@ -17,10 +17,10 @@ namespace msgfiles
 
         public static string GenToken()
         {
-            return Utils.Hash256Str(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);
+            return Utils.HashString(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);
         }
 
-        public static string Hash256Str(string str)
+        public static string HashString(string str)
         {
             using (var hasher = SHA256.Create())
                 return BytesToHex(hasher.ComputeHash(Encoding.UTF8.GetBytes(str + "some hash is delicious, I must admit")));
@@ -100,8 +100,12 @@ namespace msgfiles
             int angle = email.LastIndexOf('<');
             if (angle >= 0)
             {
+                if (email.IndexOf('<') != angle)
+                    throw new InputException($"Invalid email address: {email}");
+
                 string to_name = email.Substring(0, angle).Trim();
                 string to_addr = email.Substring(angle).Trim().Trim('<', '>').Trim();
+
                 if (GetValidEmail(to_addr).Length == 0)
                     throw new InputException($"Invalid email address: {to_addr}");
                 else
@@ -124,13 +128,21 @@ namespace msgfiles
         public static byte[] Compress(ReadOnlySpan<byte> data)
         {
             using (var memStream = new MemoryStream())
-            using (var zipStream = new GZipStream(memStream, CompressionLevel.Fastest))
             {
-                zipStream.Write(data);
-                zipStream.Flush();
+                Compress(data, memStream);
                 return memStream.ToArray();
             }
         }
+
+        public static void Compress(ReadOnlySpan<byte> data, Stream output)
+        {
+            using (var zipStream = new GZipStream(output, CompressionLevel.Fastest))
+            {
+                zipStream.Write(data);
+                zipStream.Flush();
+            }
+        }
+
 
         public static byte[] Decompress(byte[] data, int length = -1)
         {
@@ -141,6 +153,18 @@ namespace msgfiles
                 zipStream.CopyTo(outputStream);
                 return outputStream.ToArray();
             }
+        }
+
+        public static string HashStream(Stream stream)
+        {
+            using (var hasher = SHA256.Create())
+                return BytesToHex(hasher.ComputeHash(stream));
+        }
+
+        public static async Task<string> HashStreamAsync(Stream stream)
+        {
+            using (var hasher = SHA256.Create())
+                return BytesToHex(await hasher.ComputeHashAsync(stream).ConfigureAwait(false));
         }
 
         public static string Encrypt(string plainText, string key)
