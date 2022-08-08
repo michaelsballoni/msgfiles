@@ -1,4 +1,7 @@
-﻿using Ionic.Zip;
+﻿using System.Text;
+
+using Ionic.Zip;
+using Newtonsoft.Json;
 
 namespace msgfiles
 {
@@ -49,14 +52,14 @@ namespace msgfiles
                     {
                         version = 1,
                         verb = "SEND",
+                        contentLength = zip_file_size_bytes,
                         headers = new Dictionary<string, string>()
                         {
                             { "to", string.Join("; ", to) },
                             { "subject", subject },
                             { "body", body },
                             { "pwd", pwd },
-                            { "packageSizeBytes", zip_file_size_bytes.ToString() },
-                            { "packageHash", zip_hash }
+                            { "hash", zip_hash }
                         }
                     };
                 if (ServerStream == null)
@@ -101,29 +104,165 @@ namespace msgfiles
             }
         }
 
-        /* FORNOW - Finish this
         public List<msg> GetMessages()
         {
+            App.Log("Sending POP request...");
             var request =
                 new ClientRequest()
                 {
                     version = 1,
-                    verb = "POP",
-                    headers = new Dictionary<string, string>() { }
+                    verb = "POP"
                 };
-            // FORNOW
+            if (ServerStream == null)
+                throw new NullReferenceException("ServerStream");
+            SecureNet.SendObject(ServerStream, request);
+
+            App.Log("Receiving POP response...");
+            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
+            {
+                App.Log($"Server Response: {response.ResponseSummary}");
+                if (response.statusCode / 100 != 2)
+                    throw response.CreateException();
+
+                int total_to_read = (int)response.contentLength;
+                byte[] inbox_bytes = new byte[total_to_read];
+                int read_yet = 0;
+                while (read_yet < total_to_read)
+                {
+                    int read = ServerStream.Read(inbox_bytes, read_yet, total_to_read - read_yet);
+                    if (read == 0)
+                        throw new NetworkException("Connection lost");
+                    read_yet += read;
+                }
+
+                List<msg>? inbox_msgs =
+                    JsonConvert.DeserializeObject<List<msg>>
+                    (
+                        Encoding.UTF8.GetString(Utils.Decompress(inbox_bytes))
+                    );
+                if (inbox_msgs == null)
+                    throw new NetworkException("Processing response failed");
+                
+                App.Log($"Messages: {inbox_msgs.Count}");
+                return inbox_msgs;
+            }
         }
 
-        public msg GetMessage(msg m)
+        public msg GetMessage(string token)
         {
-            
+            App.Log("Sending GET request...");
+            var request =
+                new ClientRequest()
+                {
+                    version = 1,
+                    verb = "GET",
+                    headers = 
+                        new Dictionary<string, string>()
+                        { { "token", token } }
+                };
+            if (ServerStream == null)
+                throw new NullReferenceException("ServerStream");
+            SecureNet.SendObject(ServerStream, request);
+
+            App.Log("Receiving GET response...");
+            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
+            {
+                App.Log($"Server Response: {response.ResponseSummary}");
+                if (response.statusCode / 100 != 2)
+                    throw response.CreateException();
+
+                msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
+                if (m == null)
+                    throw new NetworkException("Processing response failed");
+                App.Log($"Message: {m.subject}");
+                return m;
+            }
         }
 
-        public void DeleteMessage(msg m)
+        public string DownloadMessage(string token)
         {
-            
+            App.Log("Sending DOWNLOAD request...");
+            var request =
+                new ClientRequest()
+                {
+                    version = 1,
+                    verb = "DOWNLOAD",
+                    headers = 
+                        new Dictionary<string, string>()
+                        { { "token", token } }
+                };
+            if (ServerStream == null)
+                throw new NullReferenceException("ServerStream");
+            SecureNet.SendObject(ServerStream, request);
+
+            App.Log("Receiving DOWNLOAD response...");
+            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
+            {
+                App.Log($"Server Response: {response.ResponseSummary}");
+                if (response.statusCode / 100 != 2)
+                    throw response.CreateException();
+
+                string temp_file_path = Path.Combine(Path.GetTempPath(), $"{token}.zip");
+                try
+                {
+                    using (var fs = File.OpenWrite(temp_file_path))
+                    {
+                        long total_to_read = response.contentLength;
+                        long read_yet = 0;
+                        byte[] buffer = new byte[64 * 1024];
+                        while (read_yet < total_to_read)
+                        {
+                            int to_read = (int)Math.Min(total_to_read - read_yet, buffer.Length);
+                            int read = ServerStream.Read(buffer, 0, to_read);
+                            if (read == 0)
+                                throw new NetworkException("Connection lost");
+                            fs.Write(buffer, 0, read);
+                            read_yet += read;
+                        }
+
+                        fs.Seek(0, SeekOrigin.Begin);
+                        string local_hash = Utils.HashStream(fs);
+                        fs.Seek(0, SeekOrigin.Begin);
+                        if (local_hash != response.headers["hash"])
+                            throw new NetworkException("File transmission corrupted");
+
+                        string ret_val = temp_file_path;
+                        temp_file_path = "";
+                        return ret_val;
+                    }
+                }
+                finally
+                {
+                    if (temp_file_path != "" && File.Exists(temp_file_path))
+                        File.Delete(temp_file_path);
+                }
+            }
         }
-        */
+
+        public void DeleteMessage(string token)
+        {
+            App.Log("Sending DELETE request...");
+            var request =
+                new ClientRequest()
+                {
+                    version = 1,
+                    verb = "DELETE",
+                    headers =
+                        new Dictionary<string, string>()
+                        { { "token", token } }
+                };
+            if (ServerStream == null)
+                throw new NullReferenceException("ServerStream");
+            SecureNet.SendObject(ServerStream, request);
+
+            App.Log("Receiving DELETE response...");
+            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
+            {
+                App.Log($"Server Response: {response.ResponseSummary}");
+                if (response.statusCode / 100 != 2)
+                    throw response.CreateException();
+            }
+        }
 
         private void Zip_SaveProgress(object? sender, SaveProgressEventArgs e)
         {

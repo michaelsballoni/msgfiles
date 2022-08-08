@@ -39,7 +39,7 @@ namespace msgfiles
                     string recv_payload_file_path;
                     Assert.IsNull(db.GetMessage(msg_token, "bad@bad.com", out recv_payload_file_path));
 
-                    msg recv_msg = db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path);
+                    msg? recv_msg = db.GetMessage(msg_token, send_msg.to, out recv_payload_file_path);
                     if (recv_msg == null) 
                         throw new NullReferenceException("recv_msg");
                     Assert.AreEqual(msg_token, recv_msg.token);

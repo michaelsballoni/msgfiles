@@ -162,8 +162,7 @@ namespace msgfiles
                         {
                             version = 1,
                             statusCode = is_input_exp ? 400 : 500,
-                            statusMessage = is_input_exp ? exp.Message : "Internal Server Error",
-                            headers = new Dictionary<string, string>()
+                            statusMessage = is_input_exp ? exp.Message : "Internal Server Error"
                         };
                     SecureNet.SendObjectAsync(m_stream, error_response).Wait();
                 }

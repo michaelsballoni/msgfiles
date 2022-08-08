@@ -136,13 +136,10 @@ namespace msgfiles
 
         public static void Compress(ReadOnlySpan<byte> data, Stream output)
         {
-            using (var zipStream = new GZipStream(output, CompressionLevel.Fastest))
-            {
+            using (var zipStream = new GZipStream(output, CompressionLevel.Fastest, leaveOpen: true))
                 zipStream.Write(data);
-                zipStream.Flush();
-            }
+            output.Seek(0, SeekOrigin.Begin);
         }
-
 
         public static byte[] Decompress(byte[] data, int length = -1)
         {
@@ -165,6 +162,36 @@ namespace msgfiles
         {
             using (var hasher = SHA256.Create())
                 return BytesToHex(await hasher.ComputeHashAsync(stream).ConfigureAwait(false));
+        }
+
+        public static string ManifestZip(string zipFilePath, string pwd, out int fileCount, out long totalByteCount)
+        {
+            fileCount = 0;
+            totalByteCount = 0;
+            StringBuilder sb = new StringBuilder();
+            using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
+            {
+                zip_file.Password = pwd;
+                foreach (var zip_entry in zip_file.Entries)
+                {
+                    string size_str;
+                    {
+                        long size = zip_entry.UncompressedSize;
+                        if (size > 1024 * 1024 * 1024)
+                            size_str = $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
+                        else if (size > 1024 * 1024)
+                            size_str = $"{Math.Round((double)size / 1024 / 1024, 1)} MB";
+                        else if (size > 1024)
+                            size_str = $"{Math.Round((double)size / 1024, 1)} KB";
+                        else
+                            size_str = $"{size} bytes";
+                    }
+                    sb.AppendLine($"{zip_entry.FileName} ({size_str})");
+                    ++fileCount;
+                    totalByteCount += zip_entry.UncompressedSize;
+                }
+            }
+            return sb.ToString();
         }
 
         public static string Encrypt(string plainText, string key)

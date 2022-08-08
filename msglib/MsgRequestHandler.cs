@@ -21,33 +21,16 @@ namespace msgfiles
             switch (request.verb)
             {
                 case "SEND":
-                    {
-                        ServerResponse server_response = 
-                            await HandleSendRequestAsync(request, ctxt).ConfigureAwait(false);
-                        return server_response;
-                    }
-
+                    return await HandleSendRequestAsync(request, ctxt).ConfigureAwait(false);
                 case "POP":
-                    {
-                        ServerResponse server_response =
-                            await HandleInboxRequestAsync(request, ctxt).ConfigureAwait(false);
-                        return server_response;
-                    }
-
+                    return await HandleInboxRequestAsync(request, ctxt).ConfigureAwait(false);
                 case "GET":
-                    {
-                        ServerResponse server_response =
-                            await HandleGetRequestAsync(request, ctxt).ConfigureAwait(false);
-                        return server_response;
-                    }
-
+                    return await HandleGetRequestAsync(request, ctxt).ConfigureAwait(false);
+                
+                case "DOWNLOAD":
+                    return await HandleDownloadRequestAsync(request, ctxt).ConfigureAwait(false);
                 case "DELETE":
-                    {
-                        ServerResponse server_response =
-                            await HandleDeleteRequestAsync(request, ctxt).ConfigureAwait(false);
-                        return server_response;
-                    }
-
+                    return await HandleDeleteRequestAsync(request, ctxt).ConfigureAwait(false);
                 default:
                     throw new InputException($"Unrecognized verb: {request.verb}");
             }
@@ -65,7 +48,7 @@ namespace msgfiles
             (
                 request.headers,
                 new[]
-                { "to", "subject", "body", "pwd", "packageSizeBytes", "packageHash" }
+                { "to", "subject", "body", "pwd", "packageHash" }
             );
 
             string to = request.headers["to"];
@@ -84,13 +67,11 @@ namespace msgfiles
             if (pwd == "")
                 throw new InputException("Header missing: pwd");
 
-            long package_size_bytes;
-            if (!long.TryParse(request.headers["packageSizeBytes"], out package_size_bytes))
-                throw new InputException("Header missing: packageSizeBytes");
+            long package_size_bytes = request.contentLength;
             if (package_size_bytes / 1024 / 1024 > MaxSendPayloadMB)
                 throw new InputException("Header invalid: package too big");
 
-            string sent_zip_hash = request.headers["packageHash"];
+            string sent_zip_hash = request.headers["hash"];
             if (sent_zip_hash == "")
                 throw new InputException("Header missing: packageHash");
 
@@ -123,36 +104,17 @@ namespace msgfiles
                     throw new InputException("Received file contents do not match what was sent");
 
                 Log(ctxt, $"Inventorying ZIP");
-                string zip_manifest;
                 int file_count = 0;
                 long file_total_size_bytes = 0;
-                {
-                    StringBuilder sb = new StringBuilder();
-                    using (var zip_file = new ZipFile(temp_zip_file_path))
-                    {
-                        zip_file.Password = pwd;
-                        foreach (var zip_entry in zip_file.Entries)
-                        {
-                            string size_str;
-                            {
-                                long size = zip_entry.UncompressedSize;
-                                if (size > 1024 * 1024 * 1024)
-                                    size_str = $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
-                                else if (size > 1024 * 1024)
-                                    size_str = $"{Math.Round((double)size / 1024 / 1024, 1)} MB";
-                                else if (size > 1024)
-                                    size_str = $"{Math.Round((double)size / 1024, 1)} KB";
-                                else
-                                    size_str = $"{size} bytes";
-                            }
-                            sb.AppendLine($"{zip_entry.FileName} ({size_str})");
-                            ++file_count;
-                            file_total_size_bytes += zip_entry.UncompressedSize;
-                        }
-                    }
-                    zip_manifest = sb.ToString();
-                }
-
+                string zip_manifest =
+                    Utils.ManifestZip
+                    (
+                        temp_zip_file_path,
+                        pwd,
+                        out file_count,
+                        out file_total_size_bytes
+                    );
+ 
                 Log(ctxt, $"Storing ZIP");
                 stored_file_path = m_fileStore.StoreFile(temp_zip_file_path);
                 File.Delete(temp_zip_file_path);
@@ -182,16 +144,15 @@ namespace msgfiles
                 stored_file_path = "";
 
                 Log(ctxt, $"Sending email");
-                string email_body =
-                    $"msgfiles from {email_from}: {subject}\n\n" +
-                    $"{body}\n\n" +
-                    $"Run the msgfiles application, open this message there, and enter this password:\n\n" +
-                    $"Password: {pwd}\n\n" +
-                    $"If you do not recogize the sender or anything looks suspicious in this message or the list of files below, reply to this email to report it.\n\n" +
-                    $"Here are the files you have been sent.\n\n" +
-                    zip_manifest;
-                await ctxt.App.SendEmailAsync(email_from, to, email_body);
-
+                await ctxt.App.SendMailDeliveryMessageAsync
+                (
+                    email_from, 
+                    to, 
+                    subject, 
+                    body, 
+                    zip_manifest, 
+                    pwd
+                );
                 return HandlerContext.StandardResponse;
             }
             finally
@@ -209,6 +170,8 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
+            Log(ctxt, $"Inbox: {to}");
+
             var msgs_json_stream = new MemoryStream();
             Utils.Compress
             (
@@ -218,7 +181,6 @@ namespace msgfiles
                 ),
                 msgs_json_stream
             );
-            msgs_json_stream.Seek(0, SeekOrigin.Begin);
 
             var response =
                 new ServerResponse()
@@ -226,7 +188,7 @@ namespace msgfiles
                     version = 1,
                     statusCode = 200,
                     statusMessage = "OK",
-                    headers = new Dictionary<string, string>() { { "inboxResponseLength", msgs_json_stream.Length.ToString() } }
+                    contentLength = msgs_json_stream.Length,
                     streamToSend = msgs_json_stream
                 };
             await Task.FromResult(0);
@@ -238,40 +200,24 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
-            Utils.NormalizeDict(request.headers, new[] { "token", "getPackage" });
+            Utils.NormalizeDict(request.headers, new[] { "token" });
 
             string token = request.headers["token"];
             if (token.Length == 0)
                 throw new InputException("Header missing: token");
 
-            bool should_get_package;
-            if (!bool.TryParse(request.headers["getPackage"], out should_get_package))
-                throw new InputException("Header missing: getPackage");
+            Log(ctxt, $"Get Message: {to} - {token}");
 
             string package_file_path;
             var msg = m_msgStore.GetMessage(request.headers["token"], to, out package_file_path);
-            if (msg == null)
+            if (msg == null || !File.Exists(package_file_path))
             {
                 var response_404 =
                     new ServerResponse()
                     {
                         version = 1,
                         statusCode = 404,
-                        statusMessage = "Message Not Found",
-                        headers = new Dictionary<string, string>()
-                    };
-                return response_404;
-            }
-
-            if (!File.Exists(package_file_path))
-            {
-                var response_404 =
-                    new ServerResponse()
-                    {
-                        version = 1,
-                        statusCode = 404,
-                        statusMessage = "File Not Found",
-                        headers = new Dictionary<string, string>()
+                        statusMessage = "Message Not Found"
                     };
                 return response_404;
             }
@@ -285,10 +231,65 @@ namespace msgfiles
                     headers = 
                         new Dictionary<string, string>() 
                         { 
-                            { "msg", JsonConvert.SerializeObject(msg) },
-                            { "fileLength", new FileInfo(package_file_path).Length.ToString() }
+                            { "msg", JsonConvert.SerializeObject(msg) }
+                        }
+                };
+            await Task.FromResult(0);
+            return response;
+        }
+
+        private async Task<ServerResponse> HandleDownloadRequestAsync(ClientRequest request, HandlerContext ctxt)
+        {
+            string to = ctxt.Auth["email"];
+            m_allowBlock.EnsureEmailAllowed(to);
+
+            Utils.NormalizeDict(request.headers, new[] { "token" });
+
+            string token = request.headers["token"];
+            if (token.Length == 0)
+                throw new InputException("Header missing: token");
+
+            Log(ctxt, $"Download Payload: {to} - {token}");
+
+            string package_file_path;
+            var msg = m_msgStore.GetMessage(request.headers["token"], to, out package_file_path);
+            if (msg == null)
+            {
+                var response_404 =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "Message Not Found"
+                    };
+                return response_404;
+            }
+
+            if (!File.Exists(package_file_path))
+            {
+                var response_404 =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "File Not Found"
+                    };
+                return response_404;
+            }
+
+            var response =
+                new ServerResponse()
+                {
+                    version = 1,
+                    statusCode = 200,
+                    statusMessage = "OK",
+                    contentLength = new FileInfo(package_file_path).Length,
+                    headers =
+                        new Dictionary<string, string>()
+                        {
+                            { "hash", msg.fileHash }
                         },
-                    streamToSend = should_get_package ? File.OpenRead(package_file_path) : null
+                    streamToSend = File.OpenRead(package_file_path)
                 };
             await Task.FromResult(0);
             return response;
@@ -300,17 +301,21 @@ namespace msgfiles
             m_allowBlock.EnsureEmailAllowed(to);
 
             Utils.NormalizeDict(request.headers, new[] { "token" });
+            string token = request.headers["token"];
+            if (token.Length == 0)
+                throw new InputException("Header missing: token");
+
+            Log(ctxt, $"Delete Message: {to} - {token}");
 
             ServerResponse response;
-            if (!m_msgStore.DeleteMessage(request.headers["token"], to))
+            if (!m_msgStore.DeleteMessage(token, to))
             {
                 response =
                     new ServerResponse()
                     {
                         version = 1,
                         statusCode = 404,
-                        statusMessage = "Message Not Found",
-                        headers = new Dictionary<string, string>()
+                        statusMessage = "Message Not Found"
                     };
             }
             else
@@ -320,8 +325,7 @@ namespace msgfiles
                     {
                         version = 1,
                         statusCode = 204,
-                        statusMessage = "Message Deleted",
-                        headers = new Dictionary<string, string>()
+                        statusMessage = "Message Deleted"
                     };
             }
             await Task.FromResult(0);

@@ -20,7 +20,7 @@ namespace msgfiles
 
     public class TestServerApp : IServerApp
     {
-        public IServerRequestHandler RequestHandler => 
+        public IServerRequestHandler RequestHandler =>
             new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
 
         public TestServerApp()
@@ -47,9 +47,10 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendEmailAsync(string from, string toos, string message)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd)
         {
-            Message = message;
+            Manifest = manifest;
+            Pwd = pwd;
             await Task.FromResult(0);
         }
 
@@ -82,6 +83,8 @@ namespace msgfiles
 
         public string Token = "";
         public string Message = "";
+        public string Manifest = "";
+        public string Pwd = "";
 
         private Session? m_session = null;
 
@@ -115,7 +118,7 @@ namespace msgfiles
                 while (!server.Ready)
                     Thread.Sleep(100);
 
-                using (Client client = new Client(client_app))
+                using (var client = new MsgClient(client_app))
                 {
                     bool challenge_required = 
                         client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io");
@@ -132,11 +135,37 @@ namespace msgfiles
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
 
-                    // FORNOW
-                    // Loop over X 3...
-                        // Enumerate Inbox, Opening Each Msg
-                        // Enumerate Inbox, Deleting Each Msg
-                        // Test Sending Msg X 4
+                    foreach (var msg in client.GetMessages())
+                        client.DeleteMessage(msg.token);
+
+                    for (int run = 1; run <= 3; ++run)
+                    {
+                        {
+                            var msgs = client.GetMessages();
+
+                            foreach (var msg in msgs)
+                            {
+                                var gotten = client.GetMessage(msg.token);
+                                Assert.IsNotNull(gotten);
+                                Assert.AreEqual(msg.from, gotten.from);
+                                Assert.AreEqual(msg.subject, gotten.subject);
+                                Assert.AreEqual(msg.created, gotten.created);
+                                Assert.AreEqual(msg.fileCount, gotten.fileCount);
+                                Assert.AreEqual(msg.fileSizeMB, gotten.fileSizeMB);
+
+                                var temp_path = client.DownloadMessage(msg.token);
+                                Assert.IsTrue(File.Exists(temp_path));
+                                File.Delete(temp_path);
+                            }
+
+                            foreach (var msg in msgs)
+                                client.DeleteMessage(msg.token);
+                        }
+
+                        {
+                            // FORNOW - Sending a message
+                        }
+                    }
                 }
             }
         }

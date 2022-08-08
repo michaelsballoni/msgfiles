@@ -65,6 +65,9 @@ namespace msgfiles
             );
         }
 
+        public IServerRequestHandler RequestHandler =>
+            new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
+
         public void Log(string msg)
         {
             Console.WriteLine(msg);
@@ -109,8 +112,18 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
-        public IServerRequestHandler RequestHandler => 
-            new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd)
+        {
+            string email_body =
+                $"msgfiles from {from}: {subject}\n\n" +
+                $"{body}\n\n" +
+                $"Run the msgfiles application, open this message there, and enter this password:\n\n" +
+                $"Password: {pwd}\n\n" +
+                $"If you do not recogize the sender or anything looks suspicious in this message or the list of files below, reply to this email to report it.\n\n" +
+                $"Here are the files you have been sent.\n\n" +
+                manifest;
+            await SendEmailAsync(from, toos, email_body).ConfigureAwait(false);
+        }
 
         public async Task SendEmailAsync(string from, string toos, string message)
         {

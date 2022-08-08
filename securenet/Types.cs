@@ -21,6 +21,7 @@ namespace msgfiles
     {
         public int version { get; set; }
         public Dictionary<string, string> headers { get; set; } = new Dictionary<string, string>();
+        public long contentLength { get; set; }
     }
 
     public class ClientRequest : Headered

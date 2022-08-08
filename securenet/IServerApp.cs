@@ -33,8 +33,7 @@
             {
                 version = 1,
                 statusCode = 200,
-                statusMessage = "OK",
-                headers = new Dictionary<string, string>()
+                statusMessage = "OK"
             };
     }
 
@@ -53,8 +52,8 @@
         // Send a challenge token to validate
         Task SendChallengeTokenAsync(string email, string display, string token);
 
-        // Send a message
-        Task SendEmailAsync(string from, string toos, string message);
+        // Send the message with the manifest and password
+        Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd);
 
         // Sessions
         Session? GetSession(Dictionary<string, string> auth);
