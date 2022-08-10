@@ -47,9 +47,8 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd)
         {
-            Manifest = manifest;
             Pwd = pwd;
             await Task.FromResult(0);
         }
@@ -83,7 +82,6 @@ namespace msgfiles
 
         public string Token = "";
         public string Message = "";
-        public string Manifest = "";
         public string Pwd = "";
 
         private Session? m_session = null;
@@ -110,6 +108,10 @@ namespace msgfiles
 
         public void TestClientServerConnect()
         {
+            string test_file_path = Path.Combine(Environment.CurrentDirectory, "test.txt");
+            if (!File.Exists(test_file_path))
+                File.WriteAllText(test_file_path, "test");
+
             var client_app = new TestClientApp();
             var server_app = new TestServerApp();
             using (Server server = new Server(server_app, 9914, "test.msgfiles.io"))
@@ -121,7 +123,7 @@ namespace msgfiles
                 using (var client = new MsgClient(client_app))
                 {
                     bool challenge_required = 
-                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io");
+                        client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
                     Assert.IsTrue(challenge_required);
                     while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
@@ -130,42 +132,20 @@ namespace msgfiles
                     client.Disconnect();
 
                     challenge_required =
-                        client.BeginConnect("127.0.0.1", 9914, "Michael Balloni", "contact@msgfiles.io");
+                        client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
                     Assert.IsTrue(!challenge_required);
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
 
-                    foreach (var msg in client.GetMessages())
-                        client.DeleteMessage(msg.token);
-
-                    for (int run = 1; run <= 3; ++run)
-                    {
-                        {
-                            var msgs = client.GetMessages();
-
-                            foreach (var msg in msgs)
-                            {
-                                var gotten = client.GetMessage(msg.token);
-                                Assert.IsNotNull(gotten);
-                                Assert.AreEqual(msg.from, gotten.from);
-                                Assert.AreEqual(msg.subject, gotten.subject);
-                                Assert.AreEqual(msg.created, gotten.created);
-                                Assert.AreEqual(msg.fileCount, gotten.fileCount);
-                                Assert.AreEqual(msg.fileSizeMB, gotten.fileSizeMB);
-
-                                var temp_path = client.DownloadMessage(msg.token);
-                                Assert.IsTrue(File.Exists(temp_path));
-                                File.Delete(temp_path);
-                            }
-
-                            foreach (var msg in msgs)
-                                client.DeleteMessage(msg.token);
-                        }
-
-                        {
-                            // FORNOW - Sending a message
-                        }
-                    }
+                    Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "test msg", "body", new[] { test_file_path }));
+                    
+                    var gotten = client.GetMessage(server_app.Pwd);
+                    Assert.IsNotNull(gotten);
+                    Assert.AreEqual("Contact <contact@msgfiles.io>", gotten.from);
+                    Assert.AreEqual("To <contact@msgfiles.io>", gotten.to);
+                    Assert.AreEqual("test msg", gotten.subject);
+                    Assert.AreEqual("body", gotten.body);
+                    // FORNOW - Check out the downloaded file
                 }
             }
         }

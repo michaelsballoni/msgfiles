@@ -112,16 +112,13 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd)
         {
             string email_body =
                 $"msgfiles from {from}: {subject}\n\n" +
                 $"{body}\n\n" +
-                $"Run the msgfiles application, open this message there, and enter this password:\n\n" +
-                $"Password: {pwd}\n\n" +
-                $"If you do not recogize the sender or anything looks suspicious in this message or the list of files below, reply to this email to report it.\n\n" +
-                $"Here are the files you have been sent.\n\n" +
-                manifest;
+                $"Run the msgfiles application and enter this password:\n\n" +
+                $"Password: {pwd}";
             await SendEmailAsync(from, toos, email_body).ConfigureAwait(false);
         }
 

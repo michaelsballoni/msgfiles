@@ -53,7 +53,7 @@
         Task SendChallengeTokenAsync(string email, string display, string token);
 
         // Send the message with the manifest and password
-        Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string manifest, string pwd);
+        Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd);
 
         // Sessions
         Session? GetSession(Dictionary<string, string> auth);

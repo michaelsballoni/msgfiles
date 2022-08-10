@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Data.SQLite;
+﻿using System.Data.SQLite;
+using Newtonsoft.Json;
 
 namespace msgfiles
 {
@@ -26,12 +21,11 @@ namespace msgfiles
                     "toAddress STRING NOT NULL, " +
                     "subject STRING NOT NULL, " +
                     "body STRING NOT NULL, " +
-                    "manifest STRING NOT NULL, " +
+                    "pwd STRING NOT NULL, " +
+                    "path STRING NOT NULL, " +
                     "createdEpoch INTEGER NOT NULL, " +
-                    "payloadFilePath STRING NOT NULL, " +
-                    "payloadFileCount INTEGER NOT NULL, " +
-                    "payloadFileMB NUMBER NOT NULL, " +
-                    "payloadHash STRING NOT NULL)";
+                    "deleted INTEGER DEFAULT 0 NOT NULL, " +
+                    "metadata STRING NOT NULL)";
                 using (var cmd = new SQLiteCommand(table_sql, m_db))
                     cmd.ExecuteNonQuery();
 
@@ -43,7 +37,7 @@ namespace msgfiles
                 using (var cmd = new SQLiteCommand(created_index_sql, m_db))
                     cmd.ExecuteNonQuery();
 
-                string path_index_sql = "CREATE INDEX message_path_idx ON messages (payloadFilePath)";
+                string path_index_sql = "CREATE INDEX message_path_idx ON messages (path)";
                 using (var cmd = new SQLiteCommand(path_index_sql, m_db))
                     cmd.ExecuteNonQuery();
             }
@@ -61,12 +55,15 @@ namespace msgfiles
             }
         }
 
-        public string StoreMessage(msg msg, string payloadFilePath, int fileCount, double sizeMB, string hash)
+        public string StoreMessage(msg msg, string pwd, string path, string hash)
         {
             lock (this)
             {
                 if (m_db == null)
                     throw new NullReferenceException("m_db");
+
+                var metadata = new Dictionary<string, string>();
+                metadata["hash"] = hash;
 
                 string token = Utils.GenToken();
 
@@ -74,11 +71,9 @@ namespace msgfiles
 
                 string insert_sql =
                     "INSERT INTO messages " +
-                     "(token, fromAddress, toAddress, subject, body, manifest, createdEpoch, " +
-                        "payloadFilePath, payloadFileCount, payloadFileMB, payloadHash) " +
+                     "(token, fromAddress, toAddress, subject, body, pwd, path, createdEpoch, metadata) " +
                     "VALUES " +
-                        "(@token, @from, @to, @subject, @body, @manifest, @createdEpoch, " +
-                            "@filePath, @fileCount, @fileSizeMB, @fileHash)";
+                    "(@token, @from, @to, @subject, @body, @pwd, @path, @createdEpoch, @metadata)";
                 using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -86,72 +81,37 @@ namespace msgfiles
                     cmd.Parameters.AddWithValue("@to", msg.to);
                     cmd.Parameters.AddWithValue("@subject", msg.subject);
                     cmd.Parameters.AddWithValue("@body", msg.body);
-                    cmd.Parameters.AddWithValue("@manifest", msg.manifest);
+                    cmd.Parameters.AddWithValue("@pwd", pwd);
+                    cmd.Parameters.AddWithValue("@path", path);
                     cmd.Parameters.AddWithValue("@createdEpoch", created_epoch);
-                    cmd.Parameters.AddWithValue("@filePath", payloadFilePath);
-                    cmd.Parameters.AddWithValue("@fileCount", fileCount);
-                    cmd.Parameters.AddWithValue("@fileSizeMB", sizeMB);
-                    cmd.Parameters.AddWithValue("@fileHash", hash);
+                    cmd.Parameters.AddWithValue("@metadata", JsonConvert.SerializeObject(metadata));
                     cmd.ExecuteNonQuery();
                 }
                 return token;
             }
         }
 
-        public List<msg> GetMessages(string to)
+        public msg? GetMessage(string to, string pwd, out string path, out string hash)
         {
-            var output = new List<msg>();
+            path = "";
+            hash = "";
+
             lock (this)
             {
+                msg? msg = null;
                 string select_sql =
-                    "SELECT token, fromAddress, subject, createdEpoch, payloadFileCount, payloadFileMB " +
+                    "SELECT token, fromAddress, toAddress, subject, body, createdEpoch, path, metadata " +
                     "FROM messages " +
-                    "WHERE toAddress = @to ORDER BY createdEpoch DESC";
+                    "WHERE toAddress = @to AND pwd = @pwd AND deleted = 0";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@to", Utils.PrepEmailForLookup(to));
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            msg msg =
-                                new msg()
-                                {
-                                    token = reader.GetString(0),
-                                    from = reader.GetString(1),
-                                    subject = reader.GetString(2),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(3)),
-                                    fileCount = reader.GetInt32(4),
-                                    fileSizeMB = reader.GetDouble(5)
-                                };
-                            output.Add(msg);
-                        }
-                    }
-                }
-            }
-            return output;
-        }
-
-        public msg? GetMessage(string token, string to, out string payloadFilePath)
-        {
-            payloadFilePath = "";
-
-            string select_sql =
-                "SELECT token, fromAddress, toAddress, subject, body, manifest, createdEpoch, " +
-                        "payloadFileCount, payloadFileMB, payloadFilePath, payloadHash " +
-                "FROM messages " +
-                "WHERE token = @token AND toAddress = @to";
-            using (var cmd = new SQLiteCommand(select_sql, m_db))
-            {
-                cmd.Parameters.AddWithValue("@token", token);
-                cmd.Parameters.AddWithValue("@to", Utils.PrepEmailForLookup(to));
-                lock (this)
-                {
+                    cmd.Parameters.AddWithValue("@pwd", pwd);
                     using (var reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            msg msg =
+                            msg =
                                 new msg()
                                 {
                                     token = reader.GetString(0),
@@ -159,19 +119,22 @@ namespace msgfiles
                                     to = reader.GetString(2),
                                     subject = reader.GetString(3),
                                     body = reader.GetString(4),
-                                    manifest = reader.GetString(5),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(6)),
-                                    fileCount = reader.GetInt32(7),
-                                    fileSizeMB = reader.GetDouble(8),
-                                    fileHash = reader.GetString(9),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(5))
                                 };
-                            payloadFilePath = reader.GetString(10);
-                            return msg;
+
+                            path = reader.GetString(6);
+
+                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(reader.GetString(7));
+                            if (dict != null)
+                            {
+                                if (dict.ContainsKey("hash"))
+                                    hash = dict["hash"];
+                            }
                         }
                     }
                 }
+                return msg;
             }
-            return null;
         }
 
         public bool DeleteMessage(string token, string to)
@@ -179,7 +142,7 @@ namespace msgfiles
             lock (this)
             {
                 string? file_path = null;
-                string select_sql = "SELECT payloadFilePath FROM messages WHERE token = @token";
+                string select_sql = "SELECT path FROM messages WHERE token = @token";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -189,7 +152,7 @@ namespace msgfiles
                 }
 
                 bool any_deleted = false;
-                string delete_sql = "DELETE FROM messages WHERE token = @token AND toAddress = @to";
+                string delete_sql = "UPDATE messages SET deleted = 1 WHERE token = @token AND toAddress = @to";
                 using (var cmd = new SQLiteCommand(delete_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -199,12 +162,12 @@ namespace msgfiles
 
                 if (!string.IsNullOrEmpty(file_path))
                 {
-                    bool any_msgs_use_file = false;
+                    bool any_msgs_use_file = true;
                     string count_remaining_sql =
-                        "SELECT COUNT(*) FROM messages WHERE payloadFilePath = @filePath";
+                        "SELECT COUNT(*) FROM messages WHERE path = @path AND deleted = 0";
                     using (var cmd = new SQLiteCommand(count_remaining_sql, m_db))
                     {
-                        cmd.Parameters.AddWithValue("@filePath", file_path);
+                        cmd.Parameters.AddWithValue("@path", file_path);
                         object result = cmd.ExecuteScalar();
                         any_msgs_use_file =
                             !(result == null || result == DBNull.Value || (long)result == 0);

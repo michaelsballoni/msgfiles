@@ -12,7 +12,7 @@ namespace msgfiles
         {
         }
 
-        public bool SendMsg(List<string> to, string subject, string body, List<string> paths)
+        public bool SendMsg(IEnumerable<string> to, string subject, string body, IEnumerable<string> paths)
         {
             string pwd = Utils.GenToken();
             string zip_file_path =
@@ -51,7 +51,7 @@ namespace msgfiles
                     new ClientRequest()
                     {
                         version = 1,
-                        verb = "SEND",
+                        verb = "POST",
                         contentLength = zip_file_size_bytes,
                         headers = new Dictionary<string, string>()
                         {
@@ -104,51 +104,7 @@ namespace msgfiles
             }
         }
 
-        public List<msg> GetMessages()
-        {
-            App.Log("Sending POP request...");
-            var request =
-                new ClientRequest()
-                {
-                    version = 1,
-                    verb = "POP"
-                };
-            if (ServerStream == null)
-                throw new NullReferenceException("ServerStream");
-            SecureNet.SendObject(ServerStream, request);
-
-            App.Log("Receiving POP response...");
-            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
-            {
-                App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode / 100 != 2)
-                    throw response.CreateException();
-
-                int total_to_read = (int)response.contentLength;
-                byte[] inbox_bytes = new byte[total_to_read];
-                int read_yet = 0;
-                while (read_yet < total_to_read)
-                {
-                    int read = ServerStream.Read(inbox_bytes, read_yet, total_to_read - read_yet);
-                    if (read == 0)
-                        throw new NetworkException("Connection lost");
-                    read_yet += read;
-                }
-
-                List<msg>? inbox_msgs =
-                    JsonConvert.DeserializeObject<List<msg>>
-                    (
-                        Encoding.UTF8.GetString(Utils.Decompress(inbox_bytes))
-                    );
-                if (inbox_msgs == null)
-                    throw new NetworkException("Processing response failed");
-                
-                App.Log($"Messages: {inbox_msgs.Count}");
-                return inbox_msgs;
-            }
-        }
-
-        public msg GetMessage(string token)
+        public msg GetMessage(string pwd)
         {
             App.Log("Sending GET request...");
             var request =
@@ -158,7 +114,7 @@ namespace msgfiles
                     verb = "GET",
                     headers = 
                         new Dictionary<string, string>()
-                        { { "token", token } }
+                        { { "pwd", pwd } }
                 };
             if (ServerStream == null)
                 throw new NullReferenceException("ServerStream");
