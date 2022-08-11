@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Data.SQLite;
+using Newtonsoft.Json;
 
 namespace msgfiles
 {
@@ -24,7 +25,8 @@ namespace msgfiles
                     "(token STRING CONSTRAINT sessions_primary_key PRIMARY KEY, " +
                     "display STRING NOT NULL, " +
                     "email STRING NOT NULL, " +
-                    "lastaccessEpoch INTEGER NOT NULL)";
+                    "lastaccessEpoch INTEGER NOT NULL, "  +
+                    "variables STRING NULL)";
                 using (var cmd = new SQLiteCommand(table_create_sql, m_db))
                     cmd.ExecuteNonQuery();
 
@@ -61,7 +63,7 @@ namespace msgfiles
                         return null;
                 }
 
-                string select_sql = "SELECT email, display FROM sessions WHERE token = @token";
+                string select_sql = "SELECT email, display, variables FROM sessions WHERE token = @token";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -74,7 +76,15 @@ namespace msgfiles
                                 {
                                     token = token,
                                     email = reader.GetString(0),
-                                    display = reader.GetString(1)
+                                    display = reader.GetString(1),
+                                    variables =
+                                        (
+                                            reader.IsDBNull(2) 
+                                            ? null 
+                                            : Utils.GetMetadata(reader.GetString(2)) 
+                                        )
+                                        ?? 
+                                        new Dictionary<string, string>()
                                 };
                         }
                         else
@@ -91,8 +101,8 @@ namespace msgfiles
                 string token = Guid.NewGuid().ToString();
 
                 string insert_sql =
-                    "INSERT INTO sessions (token, email, display, lastaccessEpoch) " +
-                                    "VALUES (@token, @email, @display, @epochSeconds)";
+                    "INSERT INTO sessions (token, email, display, lastaccessEpoch, variables) " +
+                                    "VALUES (@token, @email, @display, @epochSeconds, NULL)";
                 using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -133,7 +143,7 @@ namespace msgfiles
                 var now = DateTimeOffset.UtcNow;
                 var then = now - new TimeSpan(0, 0, maxAgeSeconds);
                 long oldest_epoch_seconds = then.ToUnixTimeSeconds();
-                string select_sql = "SELECT token FROM sessions WHERE lastaccessEpoch < @oldestEpoch";
+                string select_sql = "SELECT token FROM sessions WHERE lastaccessEpoch <= @oldestEpoch";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@oldestEpoch", oldest_epoch_seconds);

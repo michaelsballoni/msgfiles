@@ -68,7 +68,7 @@ namespace msgfiles
 
             string sent_zip_hash = request.headers["hash"];
             if (sent_zip_hash == "")
-                throw new InputException("Header missing: packageHash");
+                throw new InputException("Header missing: hash");
 
             Log(ctxt, $"Sending: To: {to} - Subject: {subject}");
 
@@ -93,8 +93,9 @@ namespace msgfiles
                 }
 
                 Log(ctxt, $"Hashing ZIP");
-                string local_zip_hash =
-                    await Utils.HashStreamAsync(File.OpenRead(temp_zip_file_path)).ConfigureAwait(false);
+                string local_zip_hash;
+                using (var zip_file_stream = File.OpenRead(temp_zip_file_path))
+                    local_zip_hash = await Utils.HashStreamAsync(zip_file_stream).ConfigureAwait(false);
                 if (local_zip_hash != sent_zip_hash)
                     throw new InputException("Received file contents do not match what was sent");
 
@@ -160,7 +161,8 @@ namespace msgfiles
 
             string package_file_path, package_file_hash;
             var msg = m_msgStore.GetMessage(to, pwd, out package_file_path, out package_file_hash);
-            if (msg == null || !File.Exists(package_file_path))
+            
+            if (msg == null)
             {
                 var response_404 =
                     new ServerResponse()
@@ -168,6 +170,18 @@ namespace msgfiles
                         version = 1,
                         statusCode = 404,
                         statusMessage = "Message Not Found"
+                    };
+                return response_404;
+            }
+
+            if (!File.Exists(package_file_path))
+            {
+                var response_404 =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 404,
+                        statusMessage = "File Not Found"
                     };
                 return response_404;
             }

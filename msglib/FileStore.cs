@@ -18,7 +18,7 @@ namespace msgfiles
 
         public string StoreFile(string filePath)
         {
-            string new_filename = $"{Guid.NewGuid}.dat";
+            string new_filename = $"{Guid.NewGuid()}.dat";
             string new_path = Path.Combine(m_dirPath, new_filename);
             File.Copy(filePath, new_path);
             return new_path;

@@ -7,12 +7,15 @@ namespace msgfiles
 {
     public class MsgClient : Client
     {
-        public MsgClient(IClientApp app)
-            : base(app)
-        {
-        }
+        public MsgClient(IClientApp app) : base(app) { }
 
-        public bool SendMsg(IEnumerable<string> to, string subject, string body, IEnumerable<string> paths)
+        public bool SendMsg
+        (
+            IEnumerable<string> to, 
+            string subject, 
+            string body, 
+            IEnumerable<string> paths
+        )
         {
             string pwd = Utils.GenToken();
             string zip_file_path =
@@ -35,7 +38,7 @@ namespace msgfiles
                         else if (Directory.Exists(path))
                             zip.AddDirectory(path);
                         else
-                            throw new Exception($"Item to send not found: {path}");
+                            throw new InputException($"Item to send not found: {path}");
                     }
 
                     App.Log("Saving package...");
@@ -43,7 +46,9 @@ namespace msgfiles
                 }
 
                 App.Log("Scanning package...");
-                string zip_hash = Utils.HashStream(File.OpenRead(zip_file_path));
+                string zip_hash;
+                using (var fs = File.OpenRead(zip_file_path))
+                    zip_hash = Utils.HashStream(fs);
 
                 App.Log("Sending message...");
                 long zip_file_size_bytes = new FileInfo(zip_file_path).Length;
@@ -73,10 +78,15 @@ namespace msgfiles
                     byte[] buffer = new byte[64 * 1024];
                     while (sent_yet < zip_file_size_bytes)
                     {
-                        int to_read = (int)Math.Min(buffer.Length, zip_file_size_bytes - sent_yet);
+                        int to_read = (int)Math.Min(zip_file_size_bytes - sent_yet, buffer.Length);
                         int read = zip_file_stream.Read(buffer, 0, to_read);
+                        if (App.Cancelled)
+                            return false;
 
+                        if (ServerStream == null)
+                            return false;
                         ServerStream.Write(buffer, 0, read);
+
                         sent_yet += read;
 
                         App.Progress((double)sent_yet / zip_file_size_bytes);
@@ -104,7 +114,7 @@ namespace msgfiles
             }
         }
 
-        public msg GetMessage(string pwd)
+        public bool GetMessage(string pwd)
         {
             App.Log("Sending GET request...");
             var request =
@@ -112,15 +122,15 @@ namespace msgfiles
                 {
                     version = 1,
                     verb = "GET",
-                    headers = 
-                        new Dictionary<string, string>()
-                        { { "pwd", pwd } }
+                    headers = new Dictionary<string, string>() { { "pwd", pwd } }
                 };
             if (ServerStream == null)
-                throw new NullReferenceException("ServerStream");
+                return false;
             SecureNet.SendObject(ServerStream, request);
 
             App.Log("Receiving GET response...");
+            if (ServerStream == null)
+                return false;
             using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
                 App.Log($"Server Response: {response.ResponseSummary}");
@@ -128,39 +138,25 @@ namespace msgfiles
                     throw response.CreateException();
 
                 msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
+                string status = m == null ? "(null)" : (m.from + ": " + m.subject);
+                App.Log($"Message: {status}");
                 if (m == null)
-                    throw new NetworkException("Processing response failed");
-                App.Log($"Message: {m.subject}");
-                return m;
-            }
-        }
+                    return false;
 
-        public string DownloadMessage(string token)
-        {
-            App.Log("Sending DOWNLOAD request...");
-            var request =
-                new ClientRequest()
-                {
-                    version = 1,
-                    verb = "DOWNLOAD",
-                    headers = 
-                        new Dictionary<string, string>()
-                        { { "token", token } }
-                };
-            if (ServerStream == null)
-                throw new NullReferenceException("ServerStream");
-            SecureNet.SendObject(ServerStream, request);
-
-            App.Log("Receiving DOWNLOAD response...");
-            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
-            {
-                App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode / 100 != 2)
-                    throw response.CreateException();
-
-                string temp_file_path = Path.Combine(Path.GetTempPath(), $"{token}.zip");
+                string temp_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
+                bool success = false;
+                bool preserve_message = true;
                 try
                 {
+                    if (!App.ConfirmDownload(m.from, m.subject, m.body))
+                    {
+                        preserve_message = false;
+                        return false;
+                    }
+
+                    App.Log($"Downloading files...");
+                    if (App.Cancelled)
+                        return false;
                     using (var fs = File.OpenWrite(temp_file_path))
                     {
                         long total_to_read = response.contentLength;
@@ -169,35 +165,66 @@ namespace msgfiles
                         while (read_yet < total_to_read)
                         {
                             int to_read = (int)Math.Min(total_to_read - read_yet, buffer.Length);
+                            if (ServerStream == null)
+                                return false;
                             int read = ServerStream.Read(buffer, 0, to_read);
+                            if (App.Cancelled)
+                                return false;
+
                             if (read == 0)
                                 throw new NetworkException("Connection lost");
                             fs.Write(buffer, 0, read);
+                            if (App.Cancelled)
+                                return false;
+
                             read_yet += read;
                         }
-
-                        fs.Seek(0, SeekOrigin.Begin);
-                        string local_hash = Utils.HashStream(fs);
-                        fs.Seek(0, SeekOrigin.Begin);
-                        if (local_hash != response.headers["hash"])
-                            throw new NetworkException("File transmission corrupted");
-
-                        string ret_val = temp_file_path;
-                        temp_file_path = "";
-                        return ret_val;
                     }
+
+                    App.Log($"Scanning downloaded files...");
+                    if (App.Cancelled)
+                        return false;
+                    string local_hash;
+                    using (var fs = File.OpenRead(temp_file_path))
+                        local_hash = Utils.HashStream(fs);
+                    if (App.Cancelled)
+                        return false;
+                    if (local_hash != response.headers["hash"])
+                        throw new NetworkException("File transmission error");
+
+                    App.Log($"Examining downloaded files...");
+                    int file_count = 0;
+                    long total_size_bytes = 0;
+                    string manifest = ManifestZip(temp_file_path, pwd, out file_count, out total_size_bytes);
+                    if (App.Cancelled)
+                        return false;
+
+                    string extraction_dir_path = "";
+                    if (!App.ConfirmExtraction(manifest, file_count, total_size_bytes, out extraction_dir_path))
+                    {
+                        preserve_message = false;
+                        return false;
+                    }
+
+                    App.Log($"Saving downloaded files...");
+                    ExtractZip(temp_file_path, pwd, extraction_dir_path);
+                    success = true;
+                    return true;
                 }
                 finally
                 {
-                    if (temp_file_path != "" && File.Exists(temp_file_path))
+                    if (File.Exists(temp_file_path))
                         File.Delete(temp_file_path);
+
+                    if (success || !preserve_message)
+                        DeleteMessage(m.token);
                 }
             }
         }
 
-        public void DeleteMessage(string token)
+        public bool DeleteMessage(string token)
         {
-            App.Log("Sending DELETE request...");
+            App.Log("Deleting message...");
             var request =
                 new ClientRequest()
                 {
@@ -208,15 +235,54 @@ namespace msgfiles
                         { { "token", token } }
                 };
             if (ServerStream == null)
-                throw new NullReferenceException("ServerStream");
+                return false;
             SecureNet.SendObject(ServerStream, request);
 
-            App.Log("Receiving DELETE response...");
+            App.Log("Receiving confirmation of delete...");
             using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
                 App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode / 100 != 2)
-                    throw response.CreateException();
+                return response.statusCode / 100 == 2;
+            }
+        }
+
+        private string ManifestZip(string zipFilePath, string pwd, out int fileCount, out long totalByteCount)
+        {
+            fileCount = 0;
+            totalByteCount = 0;
+            StringBuilder sb = new StringBuilder();
+            using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
+            {
+                zip_file.Password = pwd;
+                foreach (var zip_entry in zip_file.Entries)
+                {
+                    string size_str;
+                    {
+                        long size = zip_entry.UncompressedSize;
+                        if (size > 1024 * 1024 * 1024)
+                            size_str = $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
+                        else if (size > 1024 * 1024)
+                            size_str = $"{Math.Round((double)size / 1024 / 1024, 1)} MB";
+                        else if (size > 1024)
+                            size_str = $"{Math.Round((double)size / 1024, 1)} KB";
+                        else
+                            size_str = $"{size} bytes";
+                    }
+                    sb.AppendLine($"{zip_entry.FileName} ({size_str})");
+                    ++fileCount;
+                    totalByteCount += zip_entry.UncompressedSize;
+                }
+            }
+            return sb.ToString();
+        }
+
+        private void ExtractZip(string zipFilePath, string pwd, string extractionDirPath)
+        {
+            using (var zip = new ZipFile(zipFilePath))
+            {
+                zip.Password = pwd;
+                zip.ExtractProgress += Zip_ExtractProgress;
+                zip.ExtractAll(extractionDirPath);
             }
         }
 
@@ -238,6 +304,29 @@ namespace msgfiles
                 Math.Min
                 (
                     (double)e.EntriesSaved / Math.Min(e.EntriesTotal, 1),
+                    (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
+                );
+            App.Progress(min_progress);
+        }
+
+        private void Zip_ExtractProgress(object? sender, ExtractProgressEventArgs e)
+        {
+            if (App.Cancelled)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (e.CurrentEntry != null && e.CurrentEntry.FileName != m_lastZipCurrentFilename)
+            {
+                m_lastZipCurrentFilename = e.CurrentEntry.FileName;
+                App.Log(m_lastZipCurrentFilename);
+            }
+
+            double min_progress =
+                Math.Min
+                (
+                    (double)e.EntriesExtracted / Math.Min(e.EntriesTotal, 1),
                     (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
                 );
             App.Progress(min_progress);

@@ -43,7 +43,6 @@ namespace msgfiles
                         throw new NullReferenceException("recv_msg");
                     Assert.AreEqual(msg_token, recv_msg.token);
                     Assert.AreEqual(send_msg.from, recv_msg.from);
-                    Assert.AreEqual(send_msg.to, recv_msg.to);
                     Assert.AreEqual(send_msg.subject, recv_msg.subject);
                     Assert.AreEqual(send_msg.body, recv_msg.body);
                     Assert.AreEqual("hash", recv_payload_file_hash);
@@ -66,7 +65,7 @@ namespace msgfiles
                     };
                 string msg_token = db.StoreMessage(send_msg, "pwd2", payload_file_path, "hash2");
                 
-                Thread.Sleep(2200);
+                Thread.Sleep(1200);
                 
                 Assert.AreEqual(1, db.DeleteOldMessages(1));
 

@@ -1,13 +1,15 @@
-﻿namespace msgfiles
+﻿using System.Net.NetworkInformation;
+
+namespace msgfiles
 {
     public static class GlobalState
     {
         public static bool Init()
         {
-            string docs_dir = 
+            string docs_dir =
                 Path.Combine
                 (
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                     "msgfiles"
                 );
             if (!Directory.Exists(docs_dir))
@@ -63,21 +65,38 @@
         {
             get
             {
+                return Utils.HashString(MacAddress + " - " + VolumeLabel);
+            }
+        }
+
+        private static string MacAddress
+        {
+            get
+            {
+                foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (adapter.OperationalStatus == OperationalStatus.Up)
+                        return adapter.GetPhysicalAddress().ToString();
+                }
+                return "";
+            }
+        }
+
+        private static string VolumeLabel
+        {
+            get
+            {
                 foreach (var drive in DriveInfo.GetDrives())
                 {
                     if (drive.DriveType == DriveType.Fixed && drive.IsReady)
                     {
                         return
-                            Utils.HashString
-                            (
-                                drive.VolumeLabel + "|" +
-                                drive.DriveFormat + "|" +
-                                drive.RootDirectory + "|" +
-                                ""
-                            );
+                            drive.VolumeLabel + "|" + 
+                            drive.DriveFormat + "|" + 
+                            drive.RootDirectory;
                     }
                 }
-                throw new Exception("Failed to compute security key");
+                return "";
             }
         }
 

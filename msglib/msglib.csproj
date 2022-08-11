@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.SimpleEmailV2" Version="3.7.1.114" />
+    <PackageReference Include="DotNetZip" Version="1.16.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.116" />
   </ItemGroup>
 

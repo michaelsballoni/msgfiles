@@ -24,7 +24,7 @@ namespace msgfiles
                     "pwd STRING NOT NULL, " +
                     "path STRING NOT NULL, " +
                     "createdEpoch INTEGER NOT NULL, " +
-                    "deleted INTEGER DEFAULT 0 NOT NULL, " +
+                    "deleted INTEGER NOT NULL, " +
                     "metadata STRING NOT NULL)";
                 using (var cmd = new SQLiteCommand(table_sql, m_db))
                     cmd.ExecuteNonQuery();
@@ -62,8 +62,7 @@ namespace msgfiles
                 if (m_db == null)
                     throw new NullReferenceException("m_db");
 
-                var metadata = new Dictionary<string, string>();
-                metadata["hash"] = hash;
+                var metadata = new Dictionary<string, string>() { { "hash", hash } };
 
                 string token = Utils.GenToken();
 
@@ -71,14 +70,14 @@ namespace msgfiles
 
                 string insert_sql =
                     "INSERT INTO messages " +
-                     "(token, fromAddress, toAddress, subject, body, pwd, path, createdEpoch, metadata) " +
+                        "(token, fromAddress, toAddress, subject, body, pwd, path, createdEpoch, deleted, metadata) " +
                     "VALUES " +
-                    "(@token, @from, @to, @subject, @body, @pwd, @path, @createdEpoch, @metadata)";
+                     "(@token, @fromAddress, @toAddress, @subject, @body, @pwd, @path, @createdEpoch, 0, @metadata)";
                 using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
-                    cmd.Parameters.AddWithValue("@from", msg.from);
-                    cmd.Parameters.AddWithValue("@to", msg.to);
+                    cmd.Parameters.AddWithValue("@fromAddress", msg.from);
+                    cmd.Parameters.AddWithValue("@toAddress", Utils.PrepEmailForLookup(msg.to));
                     cmd.Parameters.AddWithValue("@subject", msg.subject);
                     cmd.Parameters.AddWithValue("@body", msg.body);
                     cmd.Parameters.AddWithValue("@pwd", pwd);
@@ -100,7 +99,7 @@ namespace msgfiles
             {
                 msg? msg = null;
                 string select_sql =
-                    "SELECT token, fromAddress, toAddress, subject, body, createdEpoch, path, metadata " +
+                    "SELECT token, fromAddress, subject, body, createdEpoch, path, metadata " +
                     "FROM messages " +
                     "WHERE toAddress = @to AND pwd = @pwd AND deleted = 0";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
@@ -116,20 +115,16 @@ namespace msgfiles
                                 {
                                     token = reader.GetString(0),
                                     from = reader.GetString(1),
-                                    to = reader.GetString(2),
-                                    subject = reader.GetString(3),
-                                    body = reader.GetString(4),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(5))
+                                    subject = reader.GetString(2),
+                                    body = reader.GetString(3),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(4))
                                 };
 
-                            path = reader.GetString(6);
+                            path = reader.GetString(5);
 
-                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(reader.GetString(7));
-                            if (dict != null)
-                            {
-                                if (dict.ContainsKey("hash"))
-                                    hash = dict["hash"];
-                            }
+                            var dict = Utils.GetMetadata(reader.GetString(6));
+                            if (dict.ContainsKey("hash"))
+                                hash = dict["hash"];
                         }
                     }
                 }
@@ -152,7 +147,9 @@ namespace msgfiles
                 }
 
                 bool any_deleted = false;
-                string delete_sql = "UPDATE messages SET deleted = 1 WHERE token = @token AND toAddress = @to";
+                string delete_sql = 
+                    "UPDATE messages SET deleted = 1 " +
+                    "WHERE token = @token AND toAddress = @to AND deleted = 0";
                 using (var cmd = new SQLiteCommand(delete_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
@@ -169,8 +166,8 @@ namespace msgfiles
                     {
                         cmd.Parameters.AddWithValue("@path", file_path);
                         object result = cmd.ExecuteScalar();
-                        any_msgs_use_file =
-                            !(result == null || result == DBNull.Value || (long)result == 0);
+                        if (result == null || result == DBNull.Value || (long)result == 0)
+                            any_msgs_use_file = false;
                     }
                     if (!any_msgs_use_file && File.Exists(file_path))
                         File.Delete(file_path);
@@ -182,26 +179,26 @@ namespace msgfiles
 
         public int DeleteOldMessages(int maxAgeSeconds)
         {
-            var old_token_twos = new Dictionary<string, string>();
+            var old_token_toos = new Dictionary<string, string>();
             lock (this)
             {
                 var now = DateTimeOffset.UtcNow;
                 var then = now - new TimeSpan(0, 0, maxAgeSeconds);
                 long oldest_epoch_seconds = then.ToUnixTimeSeconds();
-                string select_sql = "SELECT token, toAddress FROM messages WHERE createdEpoch < @oldestEpoch";
+                string select_sql = "SELECT token, toAddress FROM messages WHERE createdEpoch <= @oldestEpoch";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@oldestEpoch", oldest_epoch_seconds);
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
-                            old_token_twos.Add(reader.GetString(0), reader.GetString(1));
+                            old_token_toos.Add(reader.GetString(0), reader.GetString(1));
                     }
                 }
             }
 
             int messages_deleted = 0;
-            foreach (var kvp in old_token_twos)
+            foreach (var kvp in old_token_toos)
             {
                 if (DeleteMessage(kvp.Key, kvp.Value))
                     ++messages_deleted;

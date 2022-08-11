@@ -42,6 +42,8 @@ namespace msgfiles
 
         public int statusCode { get; set; }
         public string statusMessage { get; set; } = "";
+
+        [JsonIgnore]
         public Stream? streamToSend { get; set; }
 
         [JsonIgnore]

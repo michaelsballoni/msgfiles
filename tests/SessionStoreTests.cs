@@ -5,10 +5,10 @@ using NUnit.Framework;
 
 namespace msgfiles
 {
-    public class SessionDbTests
+    public class SessionStoreTests
     {
         [Test]
-        public void TestSessionDb()
+        public void TestSessionStore()
         {
             string db_file_path = "session_test.db";
             if (File.Exists(db_file_path))
@@ -53,7 +53,7 @@ namespace msgfiles
             using (var db = new SessionStore(db_file_path))
             {
                 var new_session = db.CreateSession("f@g.h", "something else");
-                Thread.Sleep(2200);
+                Thread.Sleep(1200);
                 Assert.AreEqual(1, db.DropOldSessions(1));
                 var session = db.GetSession(new_session.token);
                 Assert.IsNull(session);
