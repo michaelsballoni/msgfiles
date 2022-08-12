@@ -29,40 +29,20 @@
         private void InitializeComponent()
         {
             this.SendFilesButton = new System.Windows.Forms.Button();
-            this.OpenMessageButton = new System.Windows.Forms.Button();
-            this.DeleteMessageButton = new System.Windows.Forms.Button();
             this.ConnectAsButton = new System.Windows.Forms.Button();
             this.ConnectAsLabel = new System.Windows.Forms.Label();
-            this.MessagesListBox = new System.Windows.Forms.ListBox();
+            this.GetFilesButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // SendFilesButton
             // 
-            this.SendFilesButton.Location = new System.Drawing.Point(672, 78);
+            this.SendFilesButton.Location = new System.Drawing.Point(56, 194);
             this.SendFilesButton.Name = "SendFilesButton";
-            this.SendFilesButton.Size = new System.Drawing.Size(319, 64);
+            this.SendFilesButton.Size = new System.Drawing.Size(611, 255);
             this.SendFilesButton.TabIndex = 4;
             this.SendFilesButton.Text = "Send Files";
             this.SendFilesButton.UseVisualStyleBackColor = true;
             this.SendFilesButton.Click += new System.EventHandler(this.SendFilesButton_Click);
-            // 
-            // OpenMessageButton
-            // 
-            this.OpenMessageButton.Location = new System.Drawing.Point(12, 76);
-            this.OpenMessageButton.Name = "OpenMessageButton";
-            this.OpenMessageButton.Size = new System.Drawing.Size(332, 64);
-            this.OpenMessageButton.TabIndex = 2;
-            this.OpenMessageButton.Text = "Open Message";
-            this.OpenMessageButton.UseVisualStyleBackColor = true;
-            // 
-            // DeleteMessageButton
-            // 
-            this.DeleteMessageButton.Location = new System.Drawing.Point(350, 78);
-            this.DeleteMessageButton.Name = "DeleteMessageButton";
-            this.DeleteMessageButton.Size = new System.Drawing.Size(319, 64);
-            this.DeleteMessageButton.TabIndex = 3;
-            this.DeleteMessageButton.Text = "Delete Message";
-            this.DeleteMessageButton.UseVisualStyleBackColor = true;
             // 
             // ConnectAsButton
             // 
@@ -83,25 +63,24 @@
             this.ConnectAsLabel.TabIndex = 7;
             this.ConnectAsLabel.Text = "Display - Email - Server";
             // 
-            // MessagesListBox
+            // GetFilesButton
             // 
-            this.MessagesListBox.FormattingEnabled = true;
-            this.MessagesListBox.ItemHeight = 41;
-            this.MessagesListBox.Location = new System.Drawing.Point(9, 148);
-            this.MessagesListBox.Name = "MessagesListBox";
-            this.MessagesListBox.Size = new System.Drawing.Size(982, 742);
-            this.MessagesListBox.TabIndex = 5;
+            this.GetFilesButton.Location = new System.Drawing.Point(731, 194);
+            this.GetFilesButton.Name = "GetFilesButton";
+            this.GetFilesButton.Size = new System.Drawing.Size(611, 255);
+            this.GetFilesButton.TabIndex = 8;
+            this.GetFilesButton.Text = "Get Files";
+            this.GetFilesButton.UseVisualStyleBackColor = true;
+            this.GetFilesButton.Click += new System.EventHandler(this.GetFilesButton_Click);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1003, 904);
-            this.Controls.Add(this.MessagesListBox);
+            this.ClientSize = new System.Drawing.Size(1432, 594);
+            this.Controls.Add(this.GetFilesButton);
             this.Controls.Add(this.ConnectAsLabel);
             this.Controls.Add(this.ConnectAsButton);
-            this.Controls.Add(this.DeleteMessageButton);
-            this.Controls.Add(this.OpenMessageButton);
             this.Controls.Add(this.SendFilesButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -117,10 +96,8 @@
 
         #endregion
         private Button SendFilesButton;
-        private Button OpenMessageButton;
-        private Button DeleteMessageButton;
         private Button ConnectAsButton;
         private Label ConnectAsLabel;
-        private ListBox MessagesListBox;
+        private Button GetFilesButton;
     }
 }

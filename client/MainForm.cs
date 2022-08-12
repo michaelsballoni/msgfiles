@@ -11,9 +11,11 @@ namespace msgfiles
         {
             ConnectAsLabel.Text = "...";
 
-            ConnectForm dlg = new ConnectForm();
-            if (dlg.ShowDialog() != DialogResult.OK)
-                return false;
+            using (ConnectForm dlg = new ConnectForm())
+            {
+                if (dlg.ShowDialog() != DialogResult.OK)
+                    return false;
+            }
 
             ConnectAsLabel.Text =
                 GlobalState.DisplayName + " <" + GlobalState.Email + "> on " +
@@ -35,8 +37,23 @@ namespace msgfiles
 
         private void SendFilesButton_Click(object sender, EventArgs e)
         {
-            var dlg = new SendFilesForm();
-            dlg.Show();
+            using (var dlg = new SendFilesForm())
+                dlg.ShowDialog();
+        }
+
+        private void GetFilesButton_Click(object sender, EventArgs e)
+        {
+            string pwd = "";
+            using (var dlg = new PromptForm("Paste the password you received in the email"))
+            {
+                if (dlg.ShowDialog() != DialogResult.OK || string.IsNullOrWhiteSpace(dlg.ResultValue))
+                    return;
+                else
+                    pwd = dlg.ResultValue;
+            }
+
+            using (var status_dlg = new StatusForm(pwd))
+                status_dlg.ShowDialog();
         }
     }
 }

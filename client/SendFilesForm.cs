@@ -225,10 +225,10 @@ namespace msgfiles
 
         private void AddressButton_Click(object sender, EventArgs e)
         {
-            using (var dlg = new AddressBookForm())
+            using (var dlg = new AddressBookForm(ToAddresses))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
-                    ToAddresses = dlg.AddressesToAdd;
+                    ToAddresses = dlg.AddressesToSendTo;
             }
         }
     }

@@ -58,7 +58,7 @@
             this.CancelSendButton.Name = "CancelSendButton";
             this.CancelSendButton.Size = new System.Drawing.Size(302, 80);
             this.CancelSendButton.TabIndex = 2;
-            this.CancelSendButton.Text = "Cancel Send";
+            this.CancelSendButton.Text = "Cancel";
             this.CancelSendButton.UseVisualStyleBackColor = true;
             this.CancelSendButton.Click += new System.EventHandler(this.CancelSendButton_Click);
             // 
@@ -75,7 +75,7 @@
             this.MinimizeBox = false;
             this.Name = "StatusForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Message Files - Send Message Status";
+            this.Text = "Message Files";
             this.Load += new System.EventHandler(this.StatusForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

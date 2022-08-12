@@ -1,4 +1,4 @@
-﻿using Ionic.Zip;
+﻿using System.Diagnostics;
 
 namespace msgfiles
 {
@@ -6,11 +6,20 @@ namespace msgfiles
     {
         public StatusForm(ClientMessage msg)
         {
-            m_msg = msg;
             InitializeComponent();
+            Text = "Message Files - Sending Files";
+            m_msg = msg;
         }
 
-        private ClientMessage m_msg;
+        public StatusForm(string pwd)
+        {
+            InitializeComponent();
+            Text = "Message Files - Getting Files";
+            m_pwd = pwd;
+        }
+
+        private ClientMessage? m_msg;
+        private string? m_pwd;
 
         public bool Cancelled
         {
@@ -23,7 +32,7 @@ namespace msgfiles
         public void Log(string msg)
         {
             Application.DoEvents();
-            LogOutputTextBox.AppendText(msg + "\r");
+            LogOutputTextBox.AppendText(msg + "\n");
         }
         public void Progress(double progress)
         {
@@ -31,11 +40,47 @@ namespace msgfiles
             StatusProgressBar.Value = (int)Math.Round(progress * StatusProgressBar.Maximum);
         }
 
-        private bool m_cancelled = false;
-
-        private void DoSend()
+        public bool ConfirmDownload(string from, string subject, string body)
         {
-            CancelSendButton.Text = "Cancel Send";
+            string to_confirm =
+                $"From:\n{from}\n\nSubject:\n{subject}\n\nBody:\n{body}";
+            using (var dlg = new ConfirmForm("Does this message look good?", to_confirm))
+                return dlg.ShowDialog() == DialogResult.OK;
+        }
+
+        public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
+        {
+            extractionFolder = "";
+
+            string to_confirm =
+                $"Files: {fileCount} - Total: {Utils.ByteCountToStr(totalSizeBytes)}\n\n" +
+                $"Contents:\n{manifest}";
+            using (var dlg = new ConfirmForm("Do these file contents look good?", to_confirm))
+            {
+                if (dlg.ShowDialog() != DialogResult.OK)
+                    return false;
+            }
+
+            using (var dlg = new FolderBrowserDialog())
+            {
+                dlg.Description = "Where folder do you want to extract the files into?";
+                dlg.UseDescriptionForTitle = true;
+                if (dlg.ShowDialog() != DialogResult.OK || !Directory.Exists(dlg.SelectedPath))
+                    return false;
+
+                extractionFolder = dlg.SelectedPath;
+                m_extractionFolderDirPath = extractionFolder;
+            }
+
+            return true;
+        }
+
+        private bool m_cancelled = false;
+        private string m_extractionFolderDirPath = "";
+
+        private void DoIt()
+        {
+            CancelSendButton.Text = "Cancel";
             int seconds_between_retries = 3;
 
             bool success = false;
@@ -81,20 +126,46 @@ namespace msgfiles
                             }
                         }
 
-                        if (client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
+                        if (m_msg != null)
                         {
-                            MessageBox.Show("Message sent!");
-                            success = true;
-                            Close();
+                            if (client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
+                            {
+                                MessageBox.Show("Files sent!");
+                                success = true;
+                                Close();
+                            }
+                            else
+                                MessageBox.Show("Sending files failed!");
+                        }
+                        else if (m_pwd != null)
+                        {
+                            if (client.GetMessage(m_pwd))
+                            {
+                                MessageBox.Show("Files received!");
+                                success = true;
+                                Close();
+
+                                if (Directory.Exists(m_extractionFolderDirPath))
+                                {
+                                    ProcessStartInfo si = new ProcessStartInfo
+                                    {
+                                        Arguments = m_extractionFolderDirPath,
+                                        FileName = "explorer.exe"
+                                    };
+                                    Process.Start(si);
+                                }
+                            }
+                            else
+                                MessageBox.Show("Getting files failed!");
                         }
                         else
-                            MessageBox.Show("Sending message failed!");
+                            throw new NullReferenceException("m_msg and m_pwd");
                         return;
                     }
                 }
                 catch (NetworkException)
                 {
-                    Log("Sending the message failed due to a network error, will retry");
+                    Log("The operation failed due to a network error, will retry...");
                     Thread.Sleep(seconds_between_retries * 1000);
                 }
                 catch (Exception exp)
@@ -110,7 +181,7 @@ namespace msgfiles
                 {
                     if (!success)
                     {
-                        CancelSendButton.Text = "Retry Send";
+                        CancelSendButton.Text = "Retry";
                     }
                 }
             }
@@ -119,15 +190,15 @@ namespace msgfiles
         private void StatusForm_Load(object sender, EventArgs e)
         {
             Show();
-            DoSend();
+            DoIt();
         }
 
         private void CancelSendButton_Click(object sender, EventArgs e)
         {
-            if (CancelSendButton.Text == "Cancel Send")
+            if (CancelSendButton.Text == "Cancel")
                 m_cancelled = true;
             else
-                DoSend();
+                DoIt();
         }
     }
 }

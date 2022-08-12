@@ -27,10 +27,18 @@
             Application.DoEvents();
             StatusBarLabel.Text = msg;
         }
-
         public void Progress(double progress) 
         {
             Application.DoEvents();
+        }
+        public bool ConfirmDownload(string from, string subject, string body)
+        {
+            return false;
+        }
+        public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
+        {
+            extractionFolder = "";
+            return false;
         }
 
         private bool m_cancelled = false;

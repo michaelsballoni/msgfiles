@@ -171,6 +171,18 @@ namespace msgfiles
                 return BytesToHex(await hasher.ComputeHashAsync(stream).ConfigureAwait(false));
         }
 
+        public static string ByteCountToStr(long byteCount)
+        {
+            long size = byteCount;
+            if (size < 1000)
+                return $"{size} bytes";
+            else if (size < 1000 * 1024)
+                return $"{Math.Round((double)size / 1024, 1)} KB";
+            else if (size < 1000 * 1024 * 1024)
+                return $"{Math.Round((double)size / 1024 / 1024, 1)} MB";
+            else
+                return $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
+        }
 
         public static string Encrypt(string plainText, string key)
         {

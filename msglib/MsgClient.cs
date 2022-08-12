@@ -34,9 +34,9 @@ namespace msgfiles
                     foreach (var path in paths)
                     {
                         if (File.Exists(path))
-                            zip.AddFile(path);
+                            zip.AddFile(path, "");
                         else if (Directory.Exists(path))
-                            zip.AddDirectory(path);
+                            zip.AddDirectory(path, Path.GetFileName(path));
                         else
                             throw new InputException($"Item to send not found: {path}");
                     }
@@ -134,7 +134,9 @@ namespace msgfiles
             using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
                 App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode / 100 != 2)
+                if (response.statusCode == 404)
+                    return false;
+                else if (response.statusCode / 100 != 2)
                     throw response.CreateException();
 
                 msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
@@ -256,19 +258,12 @@ namespace msgfiles
                 zip_file.Password = pwd;
                 foreach (var zip_entry in zip_file.Entries)
                 {
-                    string size_str;
-                    {
-                        long size = zip_entry.UncompressedSize;
-                        if (size > 1024 * 1024 * 1024)
-                            size_str = $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
-                        else if (size > 1024 * 1024)
-                            size_str = $"{Math.Round((double)size / 1024 / 1024, 1)} MB";
-                        else if (size > 1024)
-                            size_str = $"{Math.Round((double)size / 1024, 1)} KB";
-                        else
-                            size_str = $"{size} bytes";
-                    }
+                    if (zip_entry.IsDirectory)
+                        continue;
+
+                    string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
                     sb.AppendLine($"{zip_entry.FileName} ({size_str})");
+
                     ++fileCount;
                     totalByteCount += zip_entry.UncompressedSize;
                 }

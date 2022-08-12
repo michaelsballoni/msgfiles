@@ -12,7 +12,7 @@ namespace msgfiles
 {
     public partial class AddressBookForm : Form
     {
-        public AddressBookForm()
+        public AddressBookForm(List<string> toAddresses)
         {
             InitializeComponent();
 
@@ -20,11 +20,14 @@ namespace msgfiles
                 throw new NullReferenceException("GlobalState.Settings");
             Addresses = GlobalState.Settings.GetSeries("AddressBook", "Address");
             Addresses.Sort();
+
+            m_initialToAddresses = toAddresses;
         }
 
         private List<string> Addresses;
+        private List<string> m_initialToAddresses;
 
-        public List<string> AddressesToAdd
+        public List<string> AddressesToSendTo
         {
             get
             {
@@ -43,7 +46,11 @@ namespace msgfiles
         private void AddressBookForm_Load(object sender, EventArgs e)
         {
             foreach (string address in Addresses)
-                AddressCheckListBox.Items.Add(address);
+            {
+                int idx = AddressCheckListBox.Items.Add(address);
+                AddressCheckListBox.SetItemChecked(idx, m_initialToAddresses.Contains(address));
+            }
+
         }
 
         private void AddAddressButton_Click(object sender, EventArgs e)
@@ -62,8 +69,38 @@ namespace msgfiles
                     if (GlobalState.Settings == null)
                         throw new NullReferenceException("GlobalState.Settings");
                     GlobalState.Settings.SetSeries("AddressBook", "Address", Addresses);
+                    GlobalState.Settings.Save();
+
+                    AddressCheckListBox.Items.Add(new_address);
                 }
             }
+        }
+
+        private void DeleteButton_Click(object sender, EventArgs e)
+        {
+            List<string> items_to_delete = new List<string>();
+            foreach (var selected_item in AddressCheckListBox.SelectedItems)
+            {
+                string? selected_str = selected_item != null ? selected_item.ToString() : null;
+                if (selected_str != null)
+                    items_to_delete.Add(selected_str);
+            }
+            
+            foreach (string to_delete in items_to_delete)
+            {
+                Addresses.Remove(to_delete);
+                AddressCheckListBox.Items.Remove(to_delete);
+            }
+
+            if (GlobalState.Settings == null)
+                throw new NullReferenceException("GlobalState.Settings");
+            GlobalState.Settings.SetSeries("AddressBook", "Address", Addresses);
+            GlobalState.Settings.Save();
+        }
+
+        private void OkButton_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.OK;
         }
     }
 }

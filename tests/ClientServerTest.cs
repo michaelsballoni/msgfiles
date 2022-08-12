@@ -36,8 +36,17 @@ namespace msgfiles
         public string ExtractionDirPath = Path.Combine(Environment.CurrentDirectory, "test_extraction_dir");
     }
 
-    public class TestServerApp : IServerApp
+    public class TestServerApp : IServerApp, IDisposable
     {
+        public void Dispose()
+        {
+            if (m_messageStore != null)
+            {
+                m_messageStore.Dispose();
+                m_messageStore = null;
+            }
+        }
+
         public IServerRequestHandler RequestHandler =>
             new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
 
@@ -112,78 +121,82 @@ namespace msgfiles
 
     public class ClientServerTests
     {
-        private static object sm_testLock = new object();
+        [Sequential]
         [Test]
         public void TestServer()
         {
-            lock (sm_testLock)
+            using (var app = new TestServerApp())
+            using (Server server = new Server(app, 9914, "test.msgfiles.io"))
             {
-                var app = new TestServerApp();
-                using (Server server = new Server(app, 9914, "test.msgfiles.io"))
-                {
-                    new Thread(Accepter).Start(server);
-                    while (!server.Ready)
-                        Thread.Sleep(100);
-                }
+                new Thread(Accepter).Start(server);
+                while (!server.Ready)
+                    Thread.Sleep(100);
             }
         }
 
+        [Sequential]
         [Test]
         public void TestClientServerConnect()
         {
-            lock (sm_testLock)
+            string test_file_path = Path.Combine(Environment.CurrentDirectory, "test.txt");
+            string test_file_contents = Guid.NewGuid().ToString();
+            File.WriteAllText(test_file_path, test_file_contents);
+
+            string test_dir_path = Path.Combine(Environment.CurrentDirectory, "test_dir");
+            if (Directory.Exists(test_dir_path))
+                Directory.Delete(test_dir_path, true);
+            Directory.CreateDirectory(test_dir_path);
+            string test_dir_file_contents = Guid.NewGuid().ToString();
+            File.WriteAllText(Path.Combine(test_dir_path, "test_dir_file.txt"), test_dir_file_contents);
+
+            var client_app = new TestClientApp();
+
+            using (var server_app = new TestServerApp())
+            using (Server server = new Server(server_app, 9914, "test.msgfiles.io"))
             {
-                string test_file_path = Path.Combine(Environment.CurrentDirectory, "test.txt");
-                string test_file_contents = Guid.NewGuid().ToString();
-                File.WriteAllText(test_file_path, test_file_contents);
+                new Thread(Accepter).Start(server);
+                while (!server.Ready)
+                    Thread.Sleep(100);
 
-                var client_app = new TestClientApp();
-                var server_app = new TestServerApp();
-
-                using (Server server = new Server(server_app, 9914, "test.msgfiles.io"))
+                using (var client = new MsgClient(client_app))
                 {
-                    new Thread(Accepter).Start(server);
-                    while (!server.Ready)
+                    bool challenge_required =
+                        client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
+                    Assert.IsTrue(challenge_required);
+                    while (string.IsNullOrWhiteSpace(server_app.Token))
                         Thread.Sleep(100);
+                    client.ContinueConnect(server_app.Token);
+                    Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
+                    client.Disconnect();
 
-                    using (var client = new MsgClient(client_app))
-                    {
-                        bool challenge_required =
-                            client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
-                        Assert.IsTrue(challenge_required);
-                        while (string.IsNullOrWhiteSpace(server_app.Token))
-                            Thread.Sleep(100);
-                        client.ContinueConnect(server_app.Token);
-                        Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
-                        client.Disconnect();
+                    challenge_required =
+                        client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
+                    Assert.IsTrue(!challenge_required);
+                    Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
 
-                        challenge_required =
-                            client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
-                        Assert.IsTrue(!challenge_required);
-                        Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
+                    Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "test msg", "body", new[] { test_file_path, test_dir_path }));
 
-                        Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "test msg", "body", new[] { test_file_path }));
+                    if (Directory.Exists(client_app.ExtractionDirPath))
+                        Directory.Delete(client_app.ExtractionDirPath, true);
+                    Directory.CreateDirectory(client_app.ExtractionDirPath);
 
-                        if (Directory.Exists(client_app.ExtractionDirPath))
-                            Directory.Delete(client_app.ExtractionDirPath, true);
-                        Directory.CreateDirectory(client_app.ExtractionDirPath);
+                    Assert.IsTrue(client.GetMessage(server_app.Pwd));
 
-                        Assert.IsTrue(client.GetMessage(server_app.Pwd));
+                    Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
+                    Assert.AreEqual(client_app.ConfirmedSubject, "test msg");
+                    Assert.AreEqual(client_app.ConfirmedBody, "body");
 
-                        Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
-                        Assert.AreEqual(client_app.ConfirmedSubject, "test msg");
-                        Assert.AreEqual(client_app.ConfirmedBody, "body");
+                    var test_files = Directory.GetFiles(client_app.ExtractionDirPath);
+                    Assert.AreEqual(1, test_files.Length);
+                    Assert.AreEqual(test_file_contents, File.ReadAllText(test_files[0]));
 
-                        var test_files = Directory.GetFiles(client_app.ExtractionDirPath);
-                        Assert.AreEqual(1, test_files.Length);
-                        Assert.AreEqual(test_file_contents, File.ReadAllText(test_files[0]));
+                    var test_dirs = Directory.GetDirectories(client_app.ExtractionDirPath);
+                    Assert.AreEqual(1, test_dirs.Length);
+                    var test_dir_files = Directory.GetFiles(test_dirs[0]);
+                    Assert.AreEqual(1, test_dir_files.Length);
+                    Assert.AreEqual(test_dir_file_contents, File.ReadAllText(test_dir_files[0]));
 
-                        Assert.IsFalse(client.GetMessage(server_app.Pwd));
-
-                        Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "test msg", "body", new[] { test_file_path }));
-                        Assert.IsTrue(client.DeleteMessage(server_app.Token));
-                        Assert.IsFalse(client.GetMessage(server_app.Pwd));
-                    }
+                    Assert.IsFalse(client.GetMessage(server_app.Pwd));
                 }
             }
         }

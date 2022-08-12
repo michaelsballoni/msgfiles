@@ -24,7 +24,14 @@ namespace msgfiles
             DisplayName = Settings.Get("client", "display");
             Email = Settings.Get("client", "email");
 
-            SessionToken = Utils.Decrypt(Settings.Get("client", "session"), Key);
+            try
+            {
+                SessionToken = Utils.Decrypt(Settings.Get("client", "session"), Key);
+            }
+            catch
+            {
+                SessionToken = "";
+            }
 
             return Ready;
         }

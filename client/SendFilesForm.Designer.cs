@@ -137,11 +137,11 @@
             // 
             // SendFilesButton
             // 
-            this.SendFilesButton.Location = new System.Drawing.Point(513, 379);
+            this.SendFilesButton.Location = new System.Drawing.Point(513, 295);
             this.SendFilesButton.Name = "SendFilesButton";
-            this.SendFilesButton.Size = new System.Drawing.Size(729, 58);
+            this.SendFilesButton.Size = new System.Drawing.Size(729, 142);
             this.SendFilesButton.TabIndex = 12;
-            this.SendFilesButton.Text = "Send Files";
+            this.SendFilesButton.Text = "Send Files!";
             this.SendFilesButton.UseVisualStyleBackColor = true;
             this.SendFilesButton.Click += new System.EventHandler(this.SendFilesButton_Click);
             // 
