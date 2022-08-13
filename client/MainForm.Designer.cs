@@ -36,11 +36,11 @@
             // 
             // SendFilesButton
             // 
-            this.SendFilesButton.Location = new System.Drawing.Point(56, 194);
+            this.SendFilesButton.Location = new System.Drawing.Point(73, 170);
             this.SendFilesButton.Name = "SendFilesButton";
             this.SendFilesButton.Size = new System.Drawing.Size(611, 255);
             this.SendFilesButton.TabIndex = 4;
-            this.SendFilesButton.Text = "Send Files";
+            this.SendFilesButton.Text = "Send Files!";
             this.SendFilesButton.UseVisualStyleBackColor = true;
             this.SendFilesButton.Click += new System.EventHandler(this.SendFilesButton_Click);
             // 
@@ -65,11 +65,11 @@
             // 
             // GetFilesButton
             // 
-            this.GetFilesButton.Location = new System.Drawing.Point(731, 194);
+            this.GetFilesButton.Location = new System.Drawing.Point(748, 170);
             this.GetFilesButton.Name = "GetFilesButton";
             this.GetFilesButton.Size = new System.Drawing.Size(611, 255);
             this.GetFilesButton.TabIndex = 8;
-            this.GetFilesButton.Text = "Get Files";
+            this.GetFilesButton.Text = "Recieve Files!";
             this.GetFilesButton.UseVisualStyleBackColor = true;
             this.GetFilesButton.Click += new System.EventHandler(this.GetFilesButton_Click);
             // 
@@ -77,7 +77,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1432, 594);
+            this.ClientSize = new System.Drawing.Size(1432, 562);
             this.Controls.Add(this.GetFilesButton);
             this.Controls.Add(this.ConnectAsLabel);
             this.Controls.Add(this.ConnectAsButton);

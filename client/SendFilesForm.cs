@@ -17,6 +17,8 @@ namespace msgfiles
             InitializeComponent();
         }
 
+        public ClientMessage? Message;
+
         private List<string> ToAddresses
         {
             get
@@ -110,6 +112,10 @@ namespace msgfiles
         {
             DoDragDrop(sender, e);
         }
+        private void SendFilesForm_DragDrop(object sender, DragEventArgs e)
+        {
+            DoDragDrop(sender, e);
+        }
 
         private void DoDragDrop(object sender, DragEventArgs e)
         {
@@ -153,6 +159,11 @@ namespace msgfiles
         {
             DoDragEnter(sender, e);
         }
+        private void SendFilesForm_DragEnter(object sender, DragEventArgs e)
+        {
+            DoDragEnter(sender, e);
+        }
+
         private void DoDragEnter(object sender, DragEventArgs e)
         {
             if (e == null || e.Data == null)
@@ -217,9 +228,9 @@ namespace msgfiles
                     paths.Add(item_str);
             }
 
-            var status_dlg = new StatusForm(new ClientMessage(to_addresses, subject, body, paths));
-            status_dlg.Show();
+            Message = new ClientMessage(to_addresses, subject, body, paths);
 
+            DialogResult = DialogResult.OK;
             Close();
         }
 

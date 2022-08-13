@@ -81,7 +81,7 @@ namespace msgfiles
             byte[] num_bytes = new byte[4];
             int read = stream.Read(num_bytes, 0, 4);
             if (read == 0)
-                throw new NetworkException("Connection closed");
+                throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
             if (bytes_length > MaxReadObjectBytes)
@@ -112,7 +112,7 @@ namespace msgfiles
             byte[] num_bytes = new byte[4];
             int read = await stream.ReadAsync(num_bytes, 0, 4).ConfigureAwait(false);
             if (read == 0)
-                throw new NetworkException("Connection closed");
+                throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
             if (bytes_length > MaxReadObjectBytes)

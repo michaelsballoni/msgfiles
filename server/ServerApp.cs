@@ -34,9 +34,10 @@ namespace msgfiles
             m_emailClient =
                 new EmailClient
                 (
+                    m_settings.Get("application", "MailServer"),
+                    int.Parse(m_settings.Get("application", "MailPort")),
                     m_settings.Get("application", "MailUsername"),
-                    m_settings.Get("application", "MailPassword"),
-                    m_settings.Get("application", "MailRegion")
+                    m_settings.Get("application", "MailPassword")
                 );
 
             var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
@@ -103,8 +104,8 @@ namespace msgfiles
                 m_settings.Get("application", "MailFromAddress"),
                 new Dictionary<string, string>() { { email , display } },
                 "Message Files - Login Challenge",
-                $"Copy and paste this token into the msgfiles application:\r\n\r\n" +
-                $"{token}\r\n\r\n" +
+                $"Copy and paste this token into the msgfiles application:\n\n" +
+                $"{token}\n\n" +
                 $"Questions or comments?  Feel free to reply to this message!"
             );
 
@@ -115,10 +116,11 @@ namespace msgfiles
         public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd)
         {
             string email_body =
-                $"msgfiles from {from}: {subject}\n\n" +
+                $"msgfiles from {from}:\n{subject}\n\n" +
                 $"{body}\n\n" +
-                $"Run the msgfiles application and enter this password:\n\n" +
-                $"Password: {pwd}";
+                $"Run the msgfiles application and paste this password there:\n\n" +
+                $"{pwd}\n\n" +
+                $"Questions or comments?  Feel free to reply to this message!";
             await SendEmailAsync(from, toos, email_body).ConfigureAwait(false);
         }
 

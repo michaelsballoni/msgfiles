@@ -65,6 +65,7 @@
             this.LooksGoodButton.TabIndex = 2;
             this.LooksGoodButton.Text = "Looks Good, Continue...";
             this.LooksGoodButton.UseVisualStyleBackColor = true;
+            this.LooksGoodButton.Click += new System.EventHandler(this.LooksGoodButton_Click);
             // 
             // LooksBadButton
             // 
@@ -74,6 +75,7 @@
             this.LooksBadButton.TabIndex = 1;
             this.LooksBadButton.Text = "Looks Bad, Delete It!";
             this.LooksBadButton.UseVisualStyleBackColor = true;
+            this.LooksBadButton.Click += new System.EventHandler(this.LooksBadButton_Click);
             // 
             // ConfirmForm
             // 

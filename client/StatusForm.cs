@@ -32,14 +32,13 @@ namespace msgfiles
         public void Log(string msg)
         {
             Application.DoEvents();
-            LogOutputTextBox.AppendText(msg + "\n");
+            LogOutputTextBox.AppendText(msg + "\r\n");
         }
         public void Progress(double progress)
         {
             Application.DoEvents();
             StatusProgressBar.Value = (int)Math.Round(progress * StatusProgressBar.Maximum);
         }
-
         public bool ConfirmDownload(string from, string subject, string body)
         {
             string to_confirm =
@@ -47,7 +46,6 @@ namespace msgfiles
             using (var dlg = new ConfirmForm("Does this message look good?", to_confirm))
                 return dlg.ShowDialog() == DialogResult.OK;
         }
-
         public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
         {
             extractionFolder = "";

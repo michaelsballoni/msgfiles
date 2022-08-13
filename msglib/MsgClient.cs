@@ -17,7 +17,7 @@ namespace msgfiles
             IEnumerable<string> paths
         )
         {
-            string pwd = Utils.GenToken();
+            string pwd = Utils.GenToken().Substring(0, 32);
             string zip_file_path =
                 Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             try
@@ -253,6 +253,7 @@ namespace msgfiles
             fileCount = 0;
             totalByteCount = 0;
             StringBuilder sb = new StringBuilder();
+            Dictionary<string, int> ext_counts = new Dictionary<string, int>();
             using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
             {
                 zip_file.Password = pwd;
@@ -264,11 +265,27 @@ namespace msgfiles
                     string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
                     sb.AppendLine($"{zip_entry.FileName} ({size_str})");
 
+                    string ext = Path.GetExtension(zip_entry.FileName);
+                    if (!ext_counts.ContainsKey(ext))
+                        ext_counts[ext] = 0;
+                    ++ext_counts[ext];
+
                     ++fileCount;
                     totalByteCount += zip_entry.UncompressedSize;
                 }
             }
-            return sb.ToString();
+
+            string ext_summary =
+                "File Types:\n";
+                string.Join
+                (
+                    "\n", 
+                    ext_counts
+                        .Select(kvp => $"{kvp.Key}: {kvp.Value}")
+                        .OrderBy(str => str)
+                );
+
+            return ext_summary + "\n" + sb.ToString();
         }
 
         private void ExtractZip(string zipFilePath, string pwd, string extractionDirPath)
@@ -298,8 +315,8 @@ namespace msgfiles
             double min_progress =
                 Math.Min
                 (
-                    (double)e.EntriesSaved / Math.Min(e.EntriesTotal, 1),
-                    (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
+                    (double)e.EntriesSaved / Math.Max(e.EntriesTotal, 1),
+                    (double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1)
                 );
             App.Progress(min_progress);
         }

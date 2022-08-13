@@ -192,7 +192,7 @@
             // 
             // AddressButton
             // 
-            this.AddressButton.Location = new System.Drawing.Point(1106, 39);
+            this.AddressButton.Location = new System.Drawing.Point(1100, 46);
             this.AddressButton.Name = "AddressButton";
             this.AddressButton.Size = new System.Drawing.Size(142, 106);
             this.AddressButton.TabIndex = 2;
@@ -203,7 +203,7 @@
             // ToEmailsTextBox
             // 
             this.ToEmailsTextBox.BackColor = System.Drawing.SystemColors.Window;
-            this.ToEmailsTextBox.Location = new System.Drawing.Point(21, 39);
+            this.ToEmailsTextBox.Location = new System.Drawing.Point(15, 46);
             this.ToEmailsTextBox.Multiline = true;
             this.ToEmailsTextBox.Name = "ToEmailsTextBox";
             this.ToEmailsTextBox.ReadOnly = true;
@@ -230,6 +230,7 @@
             // 
             // SendFilesForm
             // 
+            this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1280, 995);
@@ -245,6 +246,8 @@
             this.Name = "SendFilesForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Send Files";
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragEnter);
             this.DragDropPanel.ResumeLayout(false);
             this.DragDropPanel.PerformLayout();
             this.groupBox1.ResumeLayout(false);

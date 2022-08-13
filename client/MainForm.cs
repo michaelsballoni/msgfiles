@@ -37,7 +37,16 @@ namespace msgfiles
 
         private void SendFilesButton_Click(object sender, EventArgs e)
         {
+            ClientMessage client_message;
             using (var dlg = new SendFilesForm())
+            {
+                if (dlg.ShowDialog() != DialogResult.OK || dlg.Message == null)
+                    return;
+                else
+                    client_message = dlg.Message;
+            }
+
+            using (var dlg = new StatusForm(client_message))
                 dlg.ShowDialog();
         }
 
