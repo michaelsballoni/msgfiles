@@ -103,9 +103,9 @@ namespace msgfiles
                     App.Log($"Server Response: {send_response.ResponseSummary}");
                     if (send_response.statusCode / 100 != 2)
                         throw send_response.CreateException();
-                    else
-                        return true;
                 }
+
+                return true;
             }
             finally
             {
@@ -114,8 +114,11 @@ namespace msgfiles
             }
         }
 
-        public bool GetMessage(string pwd)
+        public bool GetMessage(string pwd, out string token, out bool shouldDelete)
         {
+            token = "";
+            shouldDelete = false;
+
             App.Log("Sending GET request...");
             var request =
                 new ClientRequest()
@@ -134,9 +137,7 @@ namespace msgfiles
             using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
                 App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode == 404)
-                    return false;
-                else if (response.statusCode / 100 != 2)
+                if (response.statusCode / 100 != 2)
                     throw response.CreateException();
 
                 msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
@@ -144,18 +145,15 @@ namespace msgfiles
                 App.Log($"Message: {status}");
                 if (m == null)
                     return false;
+                else
+                    token = m.token;
 
                 string temp_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-                bool success = false;
-                bool preserve_message = true;
                 try
                 {
-                    if (!App.ConfirmDownload(m.from, m.subject, m.body))
-                    {
-                        preserve_message = false;
+                    if (!App.ConfirmDownload(m.from, m.subject, m.body, out shouldDelete))
                         return false;
-                    }
-
+ 
                     App.Log($"Downloading files...");
                     if (App.Cancelled)
                         return false;
@@ -202,24 +200,17 @@ namespace msgfiles
                         return false;
 
                     string extraction_dir_path = "";
-                    if (!App.ConfirmExtraction(manifest, file_count, total_size_bytes, out extraction_dir_path))
-                    {
-                        preserve_message = false;
+                    if (!App.ConfirmExtraction(manifest, file_count, total_size_bytes, out shouldDelete, out extraction_dir_path))
                         return false;
-                    }
 
                     App.Log($"Saving downloaded files...");
                     ExtractZip(temp_file_path, pwd, extraction_dir_path);
-                    success = true;
                     return true;
                 }
                 finally
                 {
                     if (File.Exists(temp_file_path))
                         File.Delete(temp_file_path);
-
-                    if (success || !preserve_message)
-                        DeleteMessage(m.token);
                 }
             }
         }
@@ -241,11 +232,16 @@ namespace msgfiles
             SecureNet.SendObject(ServerStream, request);
 
             App.Log("Receiving confirmation of delete...");
+            if (ServerStream == null)
+                return false;
             using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
                 App.Log($"Server Response: {response.ResponseSummary}");
-                return response.statusCode / 100 == 2;
+                if (response.statusCode / 100 != 2)
+                    throw response.CreateException();
             }
+
+            return true;
         }
 
         private string ManifestZip(string zipFilePath, string pwd, out int fileCount, out long totalByteCount)
@@ -276,16 +272,16 @@ namespace msgfiles
             }
 
             string ext_summary =
-                "File Types:\n";
+                "File Types:\r\n" +
                 string.Join
                 (
-                    "\n", 
+                    "\r\n", 
                     ext_counts
                         .Select(kvp => $"{kvp.Key}: {kvp.Value}")
                         .OrderBy(str => str)
                 );
 
-            return ext_summary + "\n" + sb.ToString();
+            return ext_summary + "\r\n\r\n" + sb.ToString();
         }
 
         private void ExtractZip(string zipFilePath, string pwd, string extractionDirPath)
@@ -338,8 +334,8 @@ namespace msgfiles
             double min_progress =
                 Math.Min
                 (
-                    (double)e.EntriesExtracted / Math.Min(e.EntriesTotal, 1),
-                    (double)e.BytesTransferred / Math.Min(e.TotalBytesToTransfer, 1)
+                    (double)e.EntriesExtracted / Math.Max(e.EntriesTotal, 1),
+                    (double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1)
                 );
             App.Progress(min_progress);
         }

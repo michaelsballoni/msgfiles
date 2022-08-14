@@ -31,8 +31,6 @@
             this.AddFilesButton = new System.Windows.Forms.Button();
             this.RemoveFilesButton = new System.Windows.Forms.Button();
             this.FilesListBox = new System.Windows.Forms.ListBox();
-            this.DragDropPanel = new System.Windows.Forms.Panel();
-            this.DragAndDropLabel = new System.Windows.Forms.Label();
             this.button3 = new System.Windows.Forms.Button();
             this.AddFolderButton = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
@@ -45,7 +43,6 @@
             this.ToEmailsTextBox = new System.Windows.Forms.TextBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.SubjectTextBox = new System.Windows.Forms.TextBox();
-            this.DragDropPanel.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -54,7 +51,7 @@
             // 
             // AddFilesButton
             // 
-            this.AddFilesButton.Location = new System.Drawing.Point(1005, 231);
+            this.AddFilesButton.Location = new System.Drawing.Point(499, 548);
             this.AddFilesButton.Name = "AddFilesButton";
             this.AddFilesButton.Size = new System.Drawing.Size(237, 58);
             this.AddFilesButton.TabIndex = 11;
@@ -64,7 +61,7 @@
             // 
             // RemoveFilesButton
             // 
-            this.RemoveFilesButton.Location = new System.Drawing.Point(768, 231);
+            this.RemoveFilesButton.Location = new System.Drawing.Point(243, 548);
             this.RemoveFilesButton.Name = "RemoveFilesButton";
             this.RemoveFilesButton.Size = new System.Drawing.Size(228, 58);
             this.RemoveFilesButton.TabIndex = 9;
@@ -79,33 +76,9 @@
             this.FilesListBox.Location = new System.Drawing.Point(21, 46);
             this.FilesListBox.Name = "FilesListBox";
             this.FilesListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.FilesListBox.Size = new System.Drawing.Size(1227, 168);
+            this.FilesListBox.Size = new System.Drawing.Size(1227, 496);
             this.FilesListBox.Sorted = true;
             this.FilesListBox.TabIndex = 7;
-            // 
-            // DragDropPanel
-            // 
-            this.DragDropPanel.AllowDrop = true;
-            this.DragDropPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.DragDropPanel.Controls.Add(this.DragAndDropLabel);
-            this.DragDropPanel.Location = new System.Drawing.Point(21, 231);
-            this.DragDropPanel.Name = "DragDropPanel";
-            this.DragDropPanel.Size = new System.Drawing.Size(486, 206);
-            this.DragDropPanel.TabIndex = 8;
-            this.DragDropPanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.DragDropPanel_DragDrop);
-            this.DragDropPanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.DragDropPanel_DragEnter);
-            // 
-            // DragAndDropLabel
-            // 
-            this.DragAndDropLabel.AllowDrop = true;
-            this.DragAndDropLabel.AutoSize = true;
-            this.DragAndDropLabel.Location = new System.Drawing.Point(63, 77);
-            this.DragAndDropLabel.Name = "DragAndDropLabel";
-            this.DragAndDropLabel.Size = new System.Drawing.Size(352, 41);
-            this.DragAndDropLabel.TabIndex = 0;
-            this.DragAndDropLabel.Text = "Drag and Drop Files Here";
-            this.DragAndDropLabel.DragDrop += new System.Windows.Forms.DragEventHandler(this.DragAndDropLabel_DragDrop);
-            this.DragAndDropLabel.DragEnter += new System.Windows.Forms.DragEventHandler(this.DragAndDropLabel_DragEnter);
             // 
             // button3
             // 
@@ -118,9 +91,9 @@
             // 
             // AddFolderButton
             // 
-            this.AddFolderButton.Location = new System.Drawing.Point(513, 231);
+            this.AddFolderButton.Location = new System.Drawing.Point(21, 548);
             this.AddFolderButton.Name = "AddFolderButton";
-            this.AddFolderButton.Size = new System.Drawing.Size(249, 58);
+            this.AddFolderButton.Size = new System.Drawing.Size(194, 58);
             this.AddFolderButton.TabIndex = 10;
             this.AddFolderButton.Text = "Add Folder";
             this.AddFolderButton.UseVisualStyleBackColor = true;
@@ -137,9 +110,9 @@
             // 
             // SendFilesButton
             // 
-            this.SendFilesButton.Location = new System.Drawing.Point(513, 295);
+            this.SendFilesButton.Location = new System.Drawing.Point(753, 548);
             this.SendFilesButton.Name = "SendFilesButton";
-            this.SendFilesButton.Size = new System.Drawing.Size(729, 142);
+            this.SendFilesButton.Size = new System.Drawing.Size(495, 58);
             this.SendFilesButton.TabIndex = 12;
             this.SendFilesButton.Text = "Send Files!";
             this.SendFilesButton.UseVisualStyleBackColor = true;
@@ -167,17 +140,16 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.FilesListBox);
-            this.groupBox2.Controls.Add(this.DragDropPanel);
             this.groupBox2.Controls.Add(this.SendFilesButton);
+            this.groupBox2.Controls.Add(this.AddFilesButton);
             this.groupBox2.Controls.Add(this.AddFolderButton);
             this.groupBox2.Controls.Add(this.RemoveFilesButton);
-            this.groupBox2.Controls.Add(this.AddFilesButton);
             this.groupBox2.Location = new System.Drawing.Point(12, 511);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1248, 456);
+            this.groupBox2.Size = new System.Drawing.Size(1248, 623);
             this.groupBox2.TabIndex = 10;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Files";
+            this.groupBox2.Text = "Files To Send - Drag-and-Drop Files or Folders To Add";
             // 
             // groupBox3
             // 
@@ -233,7 +205,7 @@
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1280, 995);
+            this.ClientSize = new System.Drawing.Size(1280, 1161);
             this.Controls.Add(this.groupBox5);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
@@ -248,8 +220,6 @@
             this.Text = "Message Files - Send Files";
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragEnter);
-            this.DragDropPanel.ResumeLayout(false);
-            this.DragDropPanel.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
@@ -266,8 +236,6 @@
         private Button AddFilesButton;
         private Button RemoveFilesButton;
         private ListBox FilesListBox;
-        private Panel DragDropPanel;
-        private Label DragAndDropLabel;
         private Button button3;
         private Button AddFolderButton;
         private Button button4;

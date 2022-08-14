@@ -31,12 +31,27 @@
         {
             Application.DoEvents();
         }
-        public bool ConfirmDownload(string from, string subject, string body)
+        public bool ConfirmDownload
+        (
+            string from, 
+            string subject, 
+            string body, 
+            out bool shouldDelete
+        )
         {
+            shouldDelete = false;
             return false;
         }
-        public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
+        public bool ConfirmExtraction
+        (
+            string manifest, 
+            int fileCount, 
+            long totalSizeBytes, 
+            out bool shouldDelete, 
+            out string extractionFolder
+        )
         {
+            shouldDelete = false;
             extractionFolder = "";
             return false;
         }

@@ -37,7 +37,7 @@
             // 
             this.StatusProgressBar.Location = new System.Drawing.Point(12, 625);
             this.StatusProgressBar.Name = "StatusProgressBar";
-            this.StatusProgressBar.Size = new System.Drawing.Size(896, 80);
+            this.StatusProgressBar.Size = new System.Drawing.Size(1139, 80);
             this.StatusProgressBar.TabIndex = 3;
             // 
             // LogOutputTextBox
@@ -48,13 +48,13 @@
             this.LogOutputTextBox.Name = "LogOutputTextBox";
             this.LogOutputTextBox.ReadOnly = true;
             this.LogOutputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogOutputTextBox.Size = new System.Drawing.Size(1204, 607);
+            this.LogOutputTextBox.Size = new System.Drawing.Size(1447, 607);
             this.LogOutputTextBox.TabIndex = 1;
             this.LogOutputTextBox.WordWrap = false;
             // 
             // CancelSendButton
             // 
-            this.CancelSendButton.Location = new System.Drawing.Point(914, 625);
+            this.CancelSendButton.Location = new System.Drawing.Point(1157, 625);
             this.CancelSendButton.Name = "CancelSendButton";
             this.CancelSendButton.Size = new System.Drawing.Size(302, 80);
             this.CancelSendButton.TabIndex = 2;
@@ -66,7 +66,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1228, 717);
+            this.ClientSize = new System.Drawing.Size(1483, 717);
             this.Controls.Add(this.CancelSendButton);
             this.Controls.Add(this.StatusProgressBar);
             this.Controls.Add(this.LogOutputTextBox);

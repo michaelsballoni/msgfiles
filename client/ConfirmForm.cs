@@ -9,13 +9,11 @@
             ContentTextBox.Text = toConfirmBodyText;
         }
 
-        private void ConfirmForm_Load(object sender, EventArgs e)
-        {
-
-        }
+        public bool ShouldDelete = false;
 
         private void LooksBadButton_Click(object sender, EventArgs e)
         {
+            ShouldDelete = true;
             DialogResult = DialogResult.Cancel;
             Close();
         }

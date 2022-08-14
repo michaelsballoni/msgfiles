@@ -79,8 +79,7 @@ namespace msgfiles
         public static T ReadObject<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
-            int read = stream.Read(num_bytes, 0, 4);
-            if (read == 0)
+            if (stream.Read(num_bytes, 0, num_bytes.Length) != num_bytes.Length)
                 throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
@@ -110,8 +109,7 @@ namespace msgfiles
         public static async Task<T> ReadObjectAsync<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
-            int read = await stream.ReadAsync(num_bytes, 0, 4).ConfigureAwait(false);
-            if (read == 0)
+            if (await stream.ReadAsync(num_bytes, 0, num_bytes.Length).ConfigureAwait(false) != num_bytes.Length)
                 throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));

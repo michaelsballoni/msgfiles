@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace msgfiles
 {
@@ -39,23 +40,44 @@ namespace msgfiles
             Application.DoEvents();
             StatusProgressBar.Value = (int)Math.Round(progress * StatusProgressBar.Maximum);
         }
-        public bool ConfirmDownload(string from, string subject, string body)
+        public bool ConfirmDownload
+        (
+            string from, 
+            string subject, 
+            string body, 
+            out bool shouldDelete
+        )
         {
+            shouldDelete = false;
+
             string to_confirm =
-                $"From:\n{from}\n\nSubject:\n{subject}\n\nBody:\n{body}";
+                $"From:\r\n{from}\r\n\r\nSubject:\r\n{subject}\r\n\r\nBody:\r\n{body}";
             using (var dlg = new ConfirmForm("Does this message look good?", to_confirm))
-                return dlg.ShowDialog() == DialogResult.OK;
+            {
+                bool should_continue = dlg.ShowDialog() == DialogResult.OK;
+                shouldDelete = !should_continue && dlg.ShouldDelete;
+                return should_continue;
+            }
         }
-        public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
+        public bool ConfirmExtraction
+        (
+            string manifest, 
+            int fileCount, 
+            long totalSizeBytes, 
+            out bool shouldDelete,
+            out string extractionFolder)
         {
+            shouldDelete = false;
             extractionFolder = "";
 
             string to_confirm =
-                $"Files: {fileCount} - Total: {Utils.ByteCountToStr(totalSizeBytes)}\n\n" +
-                $"Contents:\n{manifest}";
+                $"Files: {fileCount} - Total: {Utils.ByteCountToStr(totalSizeBytes)}\r\n\r\n" +
+                $"Contents:\r\n{manifest}";
             using (var dlg = new ConfirmForm("Do these file contents look good?", to_confirm))
             {
-                if (dlg.ShowDialog() != DialogResult.OK)
+                bool should_continue = dlg.ShowDialog() == DialogResult.OK;
+                shouldDelete = !should_continue && dlg.ShouldDelete;
+                if (!should_continue)
                     return false;
             }
 
@@ -82,6 +104,8 @@ namespace msgfiles
             int seconds_between_retries = 3;
 
             bool success = false;
+            string token = "";
+            bool should_delete = false;
             while (!Cancelled)
             {
                 try
@@ -124,6 +148,22 @@ namespace msgfiles
                             }
                         }
 
+                        if 
+                        (
+                            !string.IsNullOrEmpty(m_pwd) 
+                            && 
+                            !success 
+                            && 
+                            should_delete 
+                            && 
+                            !string.IsNullOrEmpty(token)
+                        )
+                        {
+                            client.DeleteMessage(token);
+                            Close();
+                            return;
+                        }
+
                         if (m_msg != null)
                         {
                             if (client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
@@ -133,12 +173,14 @@ namespace msgfiles
                                 Close();
                             }
                             else
-                                MessageBox.Show("Sending files failed!");
+                                MessageBox.Show($"Sending files failed!");
+                            return;
                         }
                         else if (m_pwd != null)
                         {
-                            if (client.GetMessage(m_pwd))
+                            if (client.GetMessage(m_pwd, out token, out should_delete))
                             {
+                                client.DeleteMessage(token);
                                 MessageBox.Show("Files received!");
                                 success = true;
                                 Close();
@@ -152,14 +194,23 @@ namespace msgfiles
                                     };
                                     Process.Start(si);
                                 }
+
+                                return;
                             }
                             else
                                 MessageBox.Show("Getting files failed!");
+
+                            if (string.IsNullOrEmpty(token) || !should_delete)
+                                return;
                         }
                         else
                             throw new NullReferenceException("m_msg and m_pwd");
-                        return;
                     }
+                }
+                catch (SocketException)
+                {
+                    Log("The operation failed due to a network error, will retry...");
+                    Thread.Sleep(seconds_between_retries * 1000);
                 }
                 catch (NetworkException)
                 {

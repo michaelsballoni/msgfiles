@@ -12,11 +12,6 @@ namespace msgfiles
         public InputException(string msg) : base(msg) { }
     }
 
-    public class ServerException : Exception
-    {
-        public ServerException(string msg) : base(msg) { }
-    }
-
     public class Headered
     {
         public int version { get; set; }
@@ -47,14 +42,11 @@ namespace msgfiles
         public Stream? streamToSend { get; set; }
 
         [JsonIgnore]
-        public int BaseCode => statusCode / 100;
-
-        [JsonIgnore]
-        public string ResponseSummary => $"{statusMessage} ({statusCode})";
+        public string ResponseSummary => $"{statusCode} {statusMessage}";
 
         public Exception CreateException()
         {
-            return new ServerException(ResponseSummary);
+            return new InputException(ResponseSummary);
         }
     }
 }

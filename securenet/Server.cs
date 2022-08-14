@@ -105,8 +105,8 @@ namespace msgfiles
                 m_clients.Add(client);
             try
             {
-                var server_client = new ServerClient(m_app, m_cert, client);
-                await server_client.HandleClientAsync().ConfigureAwait(false);
+                using (var server_client = new ServerClient(m_app, m_cert, client))
+                    await server_client.HandleClientAsync().ConfigureAwait(false);
             }
             finally
             {

@@ -33,6 +33,7 @@
             this.button1 = new System.Windows.Forms.Button();
             this.AddAddressButton = new System.Windows.Forms.Button();
             this.DeleteButton = new System.Windows.Forms.Button();
+            this.label1 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // AddressCheckListBox
@@ -41,15 +42,15 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.AddressCheckListBox.FormattingEnabled = true;
-            this.AddressCheckListBox.Location = new System.Drawing.Point(12, 76);
+            this.AddressCheckListBox.Location = new System.Drawing.Point(12, 208);
             this.AddressCheckListBox.Name = "AddressCheckListBox";
-            this.AddressCheckListBox.Size = new System.Drawing.Size(1169, 664);
+            this.AddressCheckListBox.Size = new System.Drawing.Size(884, 796);
             this.AddressCheckListBox.Sorted = true;
             this.AddressCheckListBox.TabIndex = 4;
             // 
             // OkButton
             // 
-            this.OkButton.Location = new System.Drawing.Point(992, 12);
+            this.OkButton.Location = new System.Drawing.Point(708, 129);
             this.OkButton.Name = "OkButton";
             this.OkButton.Size = new System.Drawing.Size(188, 58);
             this.OkButton.TabIndex = 3;
@@ -68,7 +69,7 @@
             // 
             // AddAddressButton
             // 
-            this.AddAddressButton.Location = new System.Drawing.Point(12, 12);
+            this.AddAddressButton.Location = new System.Drawing.Point(12, 129);
             this.AddAddressButton.Name = "AddAddressButton";
             this.AddAddressButton.Size = new System.Drawing.Size(228, 58);
             this.AddAddressButton.TabIndex = 1;
@@ -78,7 +79,7 @@
             // 
             // DeleteButton
             // 
-            this.DeleteButton.Location = new System.Drawing.Point(456, 12);
+            this.DeleteButton.Location = new System.Drawing.Point(338, 129);
             this.DeleteButton.Name = "DeleteButton";
             this.DeleteButton.Size = new System.Drawing.Size(251, 58);
             this.DeleteButton.TabIndex = 2;
@@ -86,12 +87,22 @@
             this.DeleteButton.UseVisualStyleBackColor = true;
             this.DeleteButton.Click += new System.EventHandler(this.DeleteButton_Click);
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(128, 49);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(624, 41);
+            this.label1.TabIndex = 5;
+            this.label1.Text = "Check the addresses you want to send files to";
+            // 
             // AddressBookForm
             // 
             this.AcceptButton = this.OkButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1206, 769);
+            this.ClientSize = new System.Drawing.Size(921, 1051);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.DeleteButton);
             this.Controls.Add(this.AddAddressButton);
             this.Controls.Add(this.button1);
@@ -104,6 +115,7 @@
             this.Text = "Message Files - Address Book";
             this.Load += new System.EventHandler(this.AddressBookForm_Load);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -114,5 +126,6 @@
         private Button button1;
         private Button AddAddressButton;
         private Button DeleteButton;
+        private Label label1;
     }
 }

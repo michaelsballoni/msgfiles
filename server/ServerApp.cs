@@ -104,8 +104,8 @@ namespace msgfiles
                 m_settings.Get("application", "MailFromAddress"),
                 new Dictionary<string, string>() { { email , display } },
                 "Message Files - Login Challenge",
-                $"Copy and paste this token into the msgfiles application:\n\n" +
-                $"{token}\n\n" +
+                $"Copy and paste this token into the msgfiles application:\r\n\r\n" +
+                $"{token}\r\n\r\n" +
                 $"Questions or comments?  Feel free to reply to this message!"
             );
 
@@ -116,10 +116,10 @@ namespace msgfiles
         public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd)
         {
             string email_body =
-                $"msgfiles from {from}:\n{subject}\n\n" +
-                $"{body}\n\n" +
-                $"Run the msgfiles application and paste this password there:\n\n" +
-                $"{pwd}\n\n" +
+                $"msgfiles from {from}:\r\n{subject}\r\n\r\n" +
+                $"{body}\r\n\r\n" +
+                $"Run the msgfiles application and paste this password there:\r\n\r\n" +
+                $"{pwd}\r\n\r\n" +
                 $"Questions or comments?  Feel free to reply to this message!";
             await SendEmailAsync(from, toos, email_body).ConfigureAwait(false);
         }

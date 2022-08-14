@@ -16,15 +16,30 @@ namespace msgfiles
             Console.WriteLine(message);
         }
         public void Progress(double progress) { }
-        public bool ConfirmDownload(string from, string subject, string body)
+        public bool ConfirmDownload
+        (
+            string from, 
+            string subject, 
+            string body, 
+            out bool shouldDelete
+        )
         {
+            shouldDelete = false;
             ConfirmedFrom = from;
             ConfirmedSubject = subject;
             ConfirmedBody = body;
             return true;
         }
-        public bool ConfirmExtraction(string manifest, int fileCount, long totalSizeBytes, out string extractionFolder)
+        public bool ConfirmExtraction
+        (
+            string manifest, 
+            int fileCount, 
+            long totalSizeBytes, 
+            out bool shouldDelete, 
+            out string extractionFolder
+        )
         {
+            shouldDelete = false;
             extractionFolder = ExtractionDirPath;
             return true;
         }
@@ -180,7 +195,9 @@ namespace msgfiles
                         Directory.Delete(client_app.ExtractionDirPath, true);
                     Directory.CreateDirectory(client_app.ExtractionDirPath);
 
-                    Assert.IsTrue(client.GetMessage(server_app.Pwd));
+                    string token;
+                    bool should_delete;
+                    Assert.IsTrue(client.GetMessage(server_app.Pwd, out token, out should_delete));
 
                     Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
                     Assert.AreEqual(client_app.ConfirmedSubject, "test msg");
@@ -196,7 +213,14 @@ namespace msgfiles
                     Assert.AreEqual(1, test_dir_files.Length);
                     Assert.AreEqual(test_dir_file_contents, File.ReadAllText(test_dir_files[0]));
 
-                    Assert.IsFalse(client.GetMessage(server_app.Pwd));
+                    Assert.IsTrue(client.DeleteMessage(token));
+
+                    try
+                    {
+                        client.GetMessage(server_app.Pwd, out token, out should_delete);
+                        Assert.Fail();
+                    }
+                    catch (InputException) { }
                 }
             }
         }

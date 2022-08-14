@@ -56,6 +56,7 @@ namespace msgfiles
                 {
                     throw new InputException("Auth request missing fields");
                 }
+                m_clientEmail = auth_request.headers["email"];
 
                 Session? session = m_app.GetSession(auth_request.headers);
                 if
@@ -128,18 +129,19 @@ namespace msgfiles
                     Log("Receiving request...");
                     var client_request = await SecureNet.ReadObjectAsync<ClientRequest>(m_stream).ConfigureAwait(false);
 
-                    Log("Handling request...");
+                    Log($"Handling request: {client_request.verb}");
                     using (var server_response = await request_handler.HandleRequestAsync(client_request, handler_ctxt).ConfigureAwait(false))
                     { 
                         Log("Sending response header...");
                         await SecureNet.SendObjectAsync(m_stream, server_response).ConfigureAwait(false);
+                        Log($"Request handled: {server_response.ResponseSummary}");
                         if (server_response.streamToSend != null)
                         {
                             Log("Sending response payload...");
                             await server_response.streamToSend.CopyToAsync(m_stream, 64 * 1024).ConfigureAwait(false); ;
+                            Log($"Payload sent.");
                         }
                     }
-                    Log("Request handled.");
                 }
             }
             catch (SocketException)
@@ -172,7 +174,10 @@ namespace msgfiles
 
         private void Log(string message)
         {
-            m_app.Log($"{m_clientAddress}: {message}");
+            if (!string.IsNullOrEmpty(m_clientEmail))
+                m_app.Log($"{m_clientAddress} - {m_clientEmail}: {message}");
+            else
+                m_app.Log($"{m_clientAddress}: {message}");
         }
 
         private IServerApp m_app;
@@ -180,7 +185,9 @@ namespace msgfiles
         private X509Certificate? m_cert;
 
         private TcpClient m_client;
+
         private string m_clientAddress;
+        private string m_clientEmail = "";
 
         private Stream? m_stream;
     }
