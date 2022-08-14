@@ -2,11 +2,11 @@
 {
     public partial class ConfirmForm : Form
     {
-        public ConfirmForm(string confirmText, string toConfirmBodyText)
+        public ConfirmForm(string confirmText, string toConfirmMessageText)
         {
             InitializeComponent();
             ConfirmMessageLabel.Text = confirmText;
-            ContentTextBox.Text = toConfirmBodyText;
+            ContentTextBox.Text = toConfirmMessageText;
         }
 
         public bool ShouldDelete = false;

@@ -40,12 +40,12 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ContentTextBox.BackColor = System.Drawing.SystemColors.Window;
-            this.ContentTextBox.Location = new System.Drawing.Point(12, 188);
+            this.ContentTextBox.Location = new System.Drawing.Point(12, 273);
             this.ContentTextBox.Multiline = true;
             this.ContentTextBox.Name = "ContentTextBox";
             this.ContentTextBox.ReadOnly = true;
             this.ContentTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ContentTextBox.Size = new System.Drawing.Size(1329, 695);
+            this.ContentTextBox.Size = new System.Drawing.Size(1329, 748);
             this.ContentTextBox.TabIndex = 3;
             // 
             // ConfirmMessageLabel
@@ -59,9 +59,9 @@
             // 
             // LooksGoodButton
             // 
-            this.LooksGoodButton.Location = new System.Drawing.Point(929, 90);
+            this.LooksGoodButton.Location = new System.Drawing.Point(883, 89);
             this.LooksGoodButton.Name = "LooksGoodButton";
-            this.LooksGoodButton.Size = new System.Drawing.Size(412, 92);
+            this.LooksGoodButton.Size = new System.Drawing.Size(412, 146);
             this.LooksGoodButton.TabIndex = 2;
             this.LooksGoodButton.Text = "Looks Good, Continue...";
             this.LooksGoodButton.UseVisualStyleBackColor = true;
@@ -69,9 +69,9 @@
             // 
             // LooksBadButton
             // 
-            this.LooksBadButton.Location = new System.Drawing.Point(12, 90);
+            this.LooksBadButton.Location = new System.Drawing.Point(50, 89);
             this.LooksBadButton.Name = "LooksBadButton";
-            this.LooksBadButton.Size = new System.Drawing.Size(412, 92);
+            this.LooksBadButton.Size = new System.Drawing.Size(412, 146);
             this.LooksBadButton.TabIndex = 1;
             this.LooksBadButton.Text = "Looks Bad, Delete It!";
             this.LooksBadButton.UseVisualStyleBackColor = true;
@@ -79,11 +79,9 @@
             // 
             // ConfirmForm
             // 
-            this.AcceptButton = this.LooksGoodButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.LooksBadButton;
-            this.ClientSize = new System.Drawing.Size(1353, 889);
+            this.ClientSize = new System.Drawing.Size(1353, 1027);
             this.Controls.Add(this.LooksBadButton);
             this.Controls.Add(this.LooksGoodButton);
             this.Controls.Add(this.ConfirmMessageLabel);

@@ -197,16 +197,8 @@ namespace msgfiles
                 return;
             }
 
-            var subject = SubjectTextBox.Text.Trim();
-            if (subject.Length == 0)
-            {
-                MessageBox.Show("Specify the subject for the message");
-                SubjectTextBox.Focus();
-                return;
-            }
-
-            var body = MessageTextBox.Text.Trim();
-            if (body.Length == 0)
+            var message = MessageTextBox.Text.Trim();
+            if (message.Length == 0)
             {
                 MessageBox.Show("Specify the message");
                 MessageTextBox.Focus();
@@ -228,7 +220,7 @@ namespace msgfiles
                     paths.Add(item_str);
             }
 
-            Message = new ClientMessage(to_addresses, subject, body, paths);
+            Message = new ClientMessage(to_addresses, message, paths);
 
             DialogResult = DialogResult.OK;
             Close();

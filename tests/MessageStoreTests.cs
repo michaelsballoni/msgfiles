@@ -30,8 +30,7 @@ namespace msgfiles
                         {
                             from = "foo@bar.com",
                             to = "blet@monkey.net",
-                            subject = "test message",
-                            body = "blah blah blah"
+                            message = "blah blah blah"
                         };
                     string msg_token = db.StoreMessage(send_msg, "pwd", payload_file_path, "hash");
 
@@ -43,8 +42,7 @@ namespace msgfiles
                         throw new NullReferenceException("recv_msg");
                     Assert.AreEqual(msg_token, recv_msg.token);
                     Assert.AreEqual(send_msg.from, recv_msg.from);
-                    Assert.AreEqual(send_msg.subject, recv_msg.subject);
-                    Assert.AreEqual(send_msg.body, recv_msg.body);
+                    Assert.AreEqual(send_msg.message, recv_msg.message);
                     Assert.AreEqual("hash", recv_payload_file_hash);
                     Assert.IsTrue((DateTimeOffset.UtcNow - recv_msg.created).TotalSeconds < 10);
 
@@ -60,8 +58,7 @@ namespace msgfiles
                     {
                         from = "foo@bar.com",
                         to = "blet@monkey.net",
-                        subject = "test message",
-                        body = "blah blah blah"
+                        message = "blah blah blah"
                     };
                 string msg_token = db.StoreMessage(send_msg, "pwd2", payload_file_path, "hash2");
                 

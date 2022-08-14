@@ -19,8 +19,7 @@ namespace msgfiles
                     "(token STRING CONSTRAINT message_key PRIMARY KEY, " + 
                     "fromAddress STRING NOT NULL, " +
                     "toAddress STRING NOT NULL, " +
-                    "subject STRING NOT NULL, " +
-                    "body STRING NOT NULL, " +
+                    "message STRING NOT NULL, " +
                     "pwd STRING NOT NULL, " +
                     "path STRING NOT NULL, " +
                     "createdEpoch INTEGER NOT NULL, " +
@@ -70,16 +69,15 @@ namespace msgfiles
 
                 string insert_sql =
                     "INSERT INTO messages " +
-                        "(token, fromAddress, toAddress, subject, body, pwd, path, createdEpoch, deleted, metadata) " +
+                        "(token, fromAddress, toAddress, message, pwd, path, createdEpoch, deleted, metadata) " +
                     "VALUES " +
-                     "(@token, @fromAddress, @toAddress, @subject, @body, @pwd, @path, @createdEpoch, 0, @metadata)";
+                     "(@token, @fromAddress, @toAddress, @message, @pwd, @path, @createdEpoch, 0, @metadata)";
                 using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
                     cmd.Parameters.AddWithValue("@fromAddress", msg.from);
                     cmd.Parameters.AddWithValue("@toAddress", Utils.PrepEmailForLookup(msg.to));
-                    cmd.Parameters.AddWithValue("@subject", msg.subject);
-                    cmd.Parameters.AddWithValue("@body", msg.body);
+                    cmd.Parameters.AddWithValue("@message", msg.message);
                     cmd.Parameters.AddWithValue("@pwd", pwd);
                     cmd.Parameters.AddWithValue("@path", path);
                     cmd.Parameters.AddWithValue("@createdEpoch", created_epoch);
@@ -99,7 +97,7 @@ namespace msgfiles
             {
                 msg? msg = null;
                 string select_sql =
-                    "SELECT token, fromAddress, subject, body, createdEpoch, path, metadata " +
+                    "SELECT token, fromAddress, message, createdEpoch, path, metadata " +
                     "FROM messages " +
                     "WHERE toAddress = @to AND pwd = @pwd AND deleted = 0";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
@@ -115,14 +113,13 @@ namespace msgfiles
                                 {
                                     token = reader.GetString(0),
                                     from = reader.GetString(1),
-                                    subject = reader.GetString(2),
-                                    body = reader.GetString(3),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(4))
+                                    message = reader.GetString(2),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(3))
                                 };
 
-                            path = reader.GetString(5);
+                            path = reader.GetString(4);
 
-                            var dict = Utils.GetMetadata(reader.GetString(6));
+                            var dict = Utils.GetMetadata(reader.GetString(5));
                             if (dict.ContainsKey("hash"))
                                 hash = dict["hash"];
                         }

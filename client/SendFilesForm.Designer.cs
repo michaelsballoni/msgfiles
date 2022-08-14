@@ -41,12 +41,9 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.AddressButton = new System.Windows.Forms.Button();
             this.ToEmailsTextBox = new System.Windows.Forms.TextBox();
-            this.groupBox5 = new System.Windows.Forms.GroupBox();
-            this.SubjectTextBox = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
-            this.groupBox5.SuspendLayout();
             this.SuspendLayout();
             // 
             // AddFilesButton
@@ -121,20 +118,20 @@
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.MessageTextBox);
-            this.groupBox1.Location = new System.Drawing.Point(12, 303);
+            this.groupBox1.Location = new System.Drawing.Point(12, 194);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(1254, 200);
+            this.groupBox1.Size = new System.Drawing.Size(1254, 309);
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Message";
             // 
             // MessageTextBox
             // 
-            this.MessageTextBox.Location = new System.Drawing.Point(15, 72);
+            this.MessageTextBox.Location = new System.Drawing.Point(15, 46);
             this.MessageTextBox.Multiline = true;
             this.MessageTextBox.Name = "MessageTextBox";
             this.MessageTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.MessageTextBox.Size = new System.Drawing.Size(1227, 106);
+            this.MessageTextBox.Size = new System.Drawing.Size(1227, 245);
             this.MessageTextBox.TabIndex = 4;
             // 
             // groupBox2
@@ -149,7 +146,7 @@
             this.groupBox2.Size = new System.Drawing.Size(1248, 623);
             this.groupBox2.TabIndex = 10;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Files To Send - Drag-and-Drop Files or Folders To Add";
+            this.groupBox2.Text = "Files To Send - Drag-and-Drop files or folders to add or push buttons below";
             // 
             // groupBox3
             // 
@@ -160,7 +157,7 @@
             this.groupBox3.Size = new System.Drawing.Size(1254, 163);
             this.groupBox3.TabIndex = 11;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Send To Email Addresses";
+            this.groupBox3.Text = "Email Addresses To Send To";
             // 
             // AddressButton
             // 
@@ -178,27 +175,9 @@
             this.ToEmailsTextBox.Location = new System.Drawing.Point(15, 46);
             this.ToEmailsTextBox.Multiline = true;
             this.ToEmailsTextBox.Name = "ToEmailsTextBox";
-            this.ToEmailsTextBox.ReadOnly = true;
             this.ToEmailsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ToEmailsTextBox.Size = new System.Drawing.Size(1072, 106);
             this.ToEmailsTextBox.TabIndex = 1;
-            // 
-            // groupBox5
-            // 
-            this.groupBox5.Controls.Add(this.SubjectTextBox);
-            this.groupBox5.Location = new System.Drawing.Point(12, 181);
-            this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(1254, 116);
-            this.groupBox5.TabIndex = 13;
-            this.groupBox5.TabStop = false;
-            this.groupBox5.Text = "Subject";
-            // 
-            // SubjectTextBox
-            // 
-            this.SubjectTextBox.Location = new System.Drawing.Point(21, 46);
-            this.SubjectTextBox.Name = "SubjectTextBox";
-            this.SubjectTextBox.Size = new System.Drawing.Size(1221, 47);
-            this.SubjectTextBox.TabIndex = 3;
             // 
             // SendFilesForm
             // 
@@ -206,7 +185,6 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1280, 1161);
-            this.Controls.Add(this.groupBox5);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
@@ -225,8 +203,6 @@
             this.groupBox2.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
-            this.groupBox5.ResumeLayout(false);
-            this.groupBox5.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -245,8 +221,6 @@
         private GroupBox groupBox2;
         private GroupBox groupBox3;
         private TextBox ToEmailsTextBox;
-        private GroupBox groupBox5;
-        private TextBox SubjectTextBox;
         private Button AddressButton;
     }
 }

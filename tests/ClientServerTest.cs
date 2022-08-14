@@ -19,15 +19,13 @@ namespace msgfiles
         public bool ConfirmDownload
         (
             string from, 
-            string subject, 
-            string body, 
+            string message, 
             out bool shouldDelete
         )
         {
             shouldDelete = false;
             ConfirmedFrom = from;
-            ConfirmedSubject = subject;
-            ConfirmedBody = body;
+            ConfirmedMessage = message;
             return true;
         }
         public bool ConfirmExtraction
@@ -45,23 +43,13 @@ namespace msgfiles
         }
 
         public string ConfirmedFrom = "";
-        public string ConfirmedSubject = "";
-        public string ConfirmedBody = "";
+        public string ConfirmedMessage = "";
 
         public string ExtractionDirPath = Path.Combine(Environment.CurrentDirectory, "test_extraction_dir");
     }
 
     public class TestServerApp : IServerApp, IDisposable
     {
-        public void Dispose()
-        {
-            if (m_messageStore != null)
-            {
-                m_messageStore.Dispose();
-                m_messageStore = null;
-            }
-        }
-
         public IServerRequestHandler RequestHandler =>
             new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
 
@@ -78,6 +66,11 @@ namespace msgfiles
             m_messageStore = new MessageStore(msg_store_db_file_path);
         }
 
+        public void Dispose()
+        {
+            m_messageStore.Dispose();
+        }
+
         public void Log(string message)
         {
             Console.WriteLine(message);
@@ -89,7 +82,7 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string subject, string body, string pwd)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string pwd)
         {
             Pwd = pwd;
             await Task.FromResult(0);
@@ -189,7 +182,7 @@ namespace msgfiles
                     Assert.IsTrue(!challenge_required);
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
 
-                    Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "test msg", "body", new[] { test_file_path, test_dir_path }));
+                    Assert.IsTrue(client.SendMsg(new[] { "To <contact@msgfiles.io>" }, "message", new[] { test_file_path, test_dir_path }));
 
                     if (Directory.Exists(client_app.ExtractionDirPath))
                         Directory.Delete(client_app.ExtractionDirPath, true);
@@ -200,8 +193,7 @@ namespace msgfiles
                     Assert.IsTrue(client.GetMessage(server_app.Pwd, out token, out should_delete));
 
                     Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
-                    Assert.AreEqual(client_app.ConfirmedSubject, "test msg");
-                    Assert.AreEqual(client_app.ConfirmedBody, "body");
+                    Assert.AreEqual(client_app.ConfirmedMessage, "message");
 
                     var test_files = Directory.GetFiles(client_app.ExtractionDirPath);
                     Assert.AreEqual(1, test_files.Length);

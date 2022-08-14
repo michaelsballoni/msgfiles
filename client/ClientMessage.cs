@@ -2,17 +2,15 @@
 {
     public class ClientMessage
     {
-        public ClientMessage(List<string> to, string subject, string body, List<string> filePaths)
+        public ClientMessage(List<string> to, string message, List<string> filePaths)
         {
             To = to;
-            Subject = subject;
-            Body = body;
+            Message = message;
             Paths = filePaths;
         }
 
         public List<string> To;
-        public string Subject;
-        public string Body;
+        public string Message;
         public List<string> Paths;
     }
 }

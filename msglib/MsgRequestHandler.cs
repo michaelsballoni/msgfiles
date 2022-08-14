@@ -43,20 +43,16 @@ namespace msgfiles
             (
                 request.headers,
                 new[]
-                { "to", "subject", "body", "pwd", "packageHash" }
+                { "to", "message", "pwd", "packageHash" }
             );
 
             string to = request.headers["to"];
             if (to == "")
                 throw new InputException("Header missing: to");
 
-            string subject = request.headers["subject"];
-            if (subject == "")
-                throw new InputException("Header missing: subject");
-
-            string body = request.headers["body"];
-            if (body == "")
-                throw new InputException("Header missing: body");
+            string message = request.headers["message"];
+            if (message == "")
+                throw new InputException("Header missing: message");
 
             string pwd = request.headers["pwd"];
             if (pwd == "")
@@ -70,7 +66,7 @@ namespace msgfiles
             if (sent_zip_hash == "")
                 throw new InputException("Header missing: hash");
 
-            Log(ctxt, $"Sending: To: {to} - Subject: {subject}");
+            Log(ctxt, $"Sending: To: {to}");
 
             string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             string stored_file_path = "";
@@ -115,8 +111,7 @@ namespace msgfiles
                         {
                             from = email_from,
                             to = too,
-                            subject = subject,
-                            body = body
+                            message = message
                         },
                         pwd,
                         stored_file_path,
@@ -130,8 +125,7 @@ namespace msgfiles
                 (
                     email_from, 
                     to, 
-                    subject, 
-                    body, 
+                    message, 
                     pwd
                 );
                 return HandlerContext.StandardResponse;

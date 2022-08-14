@@ -15,7 +15,7 @@ namespace msgfiles
         public StatusForm(string pwd)
         {
             InitializeComponent();
-            Text = "Message Files - Getting Files";
+            Text = "Message Files - Receiving Files";
             m_pwd = pwd;
         }
 
@@ -43,15 +43,14 @@ namespace msgfiles
         public bool ConfirmDownload
         (
             string from, 
-            string subject, 
-            string body, 
+            string message, 
             out bool shouldDelete
         )
         {
             shouldDelete = false;
 
             string to_confirm =
-                $"From:\r\n{from}\r\n\r\nSubject:\r\n{subject}\r\n\r\nBody:\r\n{body}";
+                $"From:\r\n{from}\r\n\r\nMessage:\r\n\r\n{message}";
             using (var dlg = new ConfirmForm("Does this message look good?", to_confirm))
             {
                 bool should_continue = dlg.ShowDialog() == DialogResult.OK;
@@ -72,7 +71,7 @@ namespace msgfiles
 
             string to_confirm =
                 $"Files: {fileCount} - Total: {Utils.ByteCountToStr(totalSizeBytes)}\r\n\r\n" +
-                $"Contents:\r\n{manifest}";
+                $"{manifest}";
             using (var dlg = new ConfirmForm("Do these file contents look good?", to_confirm))
             {
                 bool should_continue = dlg.ShowDialog() == DialogResult.OK;
@@ -166,7 +165,7 @@ namespace msgfiles
 
                         if (m_msg != null)
                         {
-                            if (client.SendMsg(m_msg.To, m_msg.Subject, m_msg.Body, m_msg.Paths))
+                            if (client.SendMsg(m_msg.To, m_msg.Message, m_msg.Paths))
                             {
                                 MessageBox.Show("Files sent!");
                                 success = true;
@@ -197,8 +196,8 @@ namespace msgfiles
 
                                 return;
                             }
-                            else
-                                MessageBox.Show("Getting files failed!");
+                            else if (should_delete)
+                                MessageBox.Show("Receiving files failed!");
 
                             if (string.IsNullOrEmpty(token) || !should_delete)
                                 return;

@@ -53,7 +53,7 @@ namespace msgfiles
         private void GetFilesButton_Click(object sender, EventArgs e)
         {
             string pwd = "";
-            using (var dlg = new PromptForm("Paste the password you received in the email"))
+            using (var dlg = new PromptForm("Paste the access token you received in the email"))
             {
                 if (dlg.ShowDialog() != DialogResult.OK || string.IsNullOrWhiteSpace(dlg.ResultValue))
                     return;

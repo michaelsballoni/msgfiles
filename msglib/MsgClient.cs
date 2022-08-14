@@ -12,8 +12,7 @@ namespace msgfiles
         public bool SendMsg
         (
             IEnumerable<string> to, 
-            string subject, 
-            string body, 
+            string message, 
             IEnumerable<string> paths
         )
         {
@@ -61,8 +60,7 @@ namespace msgfiles
                         headers = new Dictionary<string, string>()
                         {
                             { "to", string.Join("; ", to) },
-                            { "subject", subject },
-                            { "body", body },
+                            { "message", message },
                             { "pwd", pwd },
                             { "hash", zip_hash }
                         }
@@ -141,7 +139,7 @@ namespace msgfiles
                     throw response.CreateException();
 
                 msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
-                string status = m == null ? "(null)" : (m.from + ": " + m.subject);
+                string status = m == null ? "(null)" : m.from;
                 App.Log($"Message: {status}");
                 if (m == null)
                     return false;
@@ -151,7 +149,7 @@ namespace msgfiles
                 string temp_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
                 try
                 {
-                    if (!App.ConfirmDownload(m.from, m.subject, m.body, out shouldDelete))
+                    if (!App.ConfirmDownload(m.from, m.message, out shouldDelete))
                         return false;
  
                     App.Log($"Downloading files...");
@@ -261,7 +259,7 @@ namespace msgfiles
                     string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
                     sb.AppendLine($"{zip_entry.FileName} ({size_str})");
 
-                    string ext = Path.GetExtension(zip_entry.FileName);
+                    string ext = Path.GetExtension(zip_entry.FileName).ToUpper();
                     if (!ext_counts.ContainsKey(ext))
                         ext_counts[ext] = 0;
                     ++ext_counts[ext];

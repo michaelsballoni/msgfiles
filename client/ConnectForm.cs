@@ -34,8 +34,7 @@
         public bool ConfirmDownload
         (
             string from, 
-            string subject, 
-            string body, 
+            string message, 
             out bool shouldDelete
         )
         {
