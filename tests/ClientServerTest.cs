@@ -31,8 +31,6 @@ namespace msgfiles
         public bool ConfirmExtraction
         (
             string manifest, 
-            int fileCount, 
-            long totalSizeBytes, 
             out bool shouldDelete, 
             out string extractionFolder
         )

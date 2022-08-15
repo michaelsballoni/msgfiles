@@ -68,75 +68,77 @@ namespace msgfiles
 
             Log(ctxt, $"Sending: To: {to}");
 
-            string temp_zip_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-            string stored_file_path = "";
-            try
+            using (var temp_file_use = new TempFileUse(".zip"))
             {
-                Log(ctxt, $"Saving ZIP: {temp_zip_file_path}");
-                using (var zip_file_stream = File.OpenWrite(temp_zip_file_path))
+                string stored_file_path = "";
+                string temp_zip_file_path = temp_file_use.FilePath;
+                try
                 {
-                    long written_yet = 0;
-                    byte[] buffer = new byte[64 * 1024];
-                    while (written_yet < package_size_bytes)
+
+                    Log(ctxt, $"Saving ZIP: {temp_zip_file_path}");
+                    using (var zip_file_stream = File.OpenWrite(temp_zip_file_path))
                     {
-                        int to_read = (int)Math.Min(package_size_bytes - written_yet, buffer.Length);
-                        int read = await ctxt.ConnectionStream.ReadAsync(buffer, 0, to_read).ConfigureAwait(false);
-                        if (read == 0)
-                            throw new NetworkException("Connection lost");
-                        await zip_file_stream.WriteAsync(buffer, 0, read).ConfigureAwait(false);
-                        written_yet += read;
-                    }
-                }
-
-                Log(ctxt, $"Hashing ZIP");
-                string local_zip_hash;
-                using (var zip_file_stream = File.OpenRead(temp_zip_file_path))
-                    local_zip_hash = await Utils.HashStreamAsync(zip_file_stream).ConfigureAwait(false);
-                if (local_zip_hash != sent_zip_hash)
-                    throw new InputException("Received file contents do not match what was sent");
-
-                Log(ctxt, $"Storing ZIP");
-                stored_file_path = m_fileStore.StoreFile(temp_zip_file_path);
-                File.Delete(temp_zip_file_path);
-                temp_zip_file_path = "";
-
-                Log(ctxt, $"Storing messages");
-                string email_from = $"{ctxt.Auth["display"]} <{ctxt.Auth["email"]}>";
-                var toos = to.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0);
-                foreach (var too in toos)
-                {
-                    m_msgStore.StoreMessage
-                    (
-                        new msg()
+                        long written_yet = 0;
+                        byte[] buffer = new byte[64 * 1024];
+                        while (written_yet < package_size_bytes)
                         {
-                            from = email_from,
-                            to = too,
-                            message = message
-                        },
-                        pwd,
-                        stored_file_path,
-                        local_zip_hash
-                    );
-                }
-                stored_file_path = "";
+                            int to_read = (int)Math.Min(package_size_bytes - written_yet, buffer.Length);
+                            int read = await ctxt.ConnectionStream.ReadAsync(buffer, 0, to_read).ConfigureAwait(false);
+                            if (read == 0)
+                                throw new NetworkException("Connection lost");
+                            await zip_file_stream.WriteAsync(buffer, 0, read).ConfigureAwait(false);
+                            written_yet += read;
+                        }
+                    }
 
-                Log(ctxt, $"Sending email");
-                await ctxt.App.SendMailDeliveryMessageAsync
-                (
-                    email_from, 
-                    to, 
-                    message, 
-                    pwd
-                );
-                return HandlerContext.StandardResponse;
-            }
-            finally
-            {
-                if (temp_zip_file_path != "" && File.Exists(temp_zip_file_path))
+                    Log(ctxt, $"Hashing ZIP");
+                    string local_zip_hash;
+                    using (var zip_file_stream = File.OpenRead(temp_zip_file_path))
+                        local_zip_hash = await Utils.HashStreamAsync(zip_file_stream).ConfigureAwait(false);
+                    if (local_zip_hash != sent_zip_hash)
+                        throw new InputException("Received file contents do not match what was sent");
+
+                    Log(ctxt, $"Storing ZIP");
+                    stored_file_path = m_fileStore.StoreFile(temp_zip_file_path);
                     File.Delete(temp_zip_file_path);
+                    temp_zip_file_path = "";
+                    temp_file_use.Clear();
 
-                if (stored_file_path != "" && File.Exists(stored_file_path))
-                    File.Delete(stored_file_path);
+                    Log(ctxt, $"Storing messages");
+                    string email_from = $"{ctxt.Auth["display"]} <{ctxt.Auth["email"]}>";
+                    var toos = to.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0);
+                    foreach (var too in toos)
+                    {
+                        m_msgStore.StoreMessage
+                        (
+                            new msg()
+                            {
+                                from = email_from,
+                                to = too,
+                                message = message
+                            },
+                            pwd,
+                            stored_file_path,
+                            local_zip_hash
+                        );
+                    }
+                    stored_file_path = "";
+
+                    Log(ctxt, $"Sending email");
+                    await ctxt.App.SendMailDeliveryMessageAsync
+                    (
+                        email_from,
+                        to,
+                        message,
+                        pwd
+                    );
+                    return HandlerContext.StandardResponse;
+                }
+                finally
+                {
+                    if (stored_file_path != "" && File.Exists(stored_file_path))
+                        File.Delete(stored_file_path);
+                }
             }
         }
 

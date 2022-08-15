@@ -17,19 +17,19 @@ namespace msgfiles
         )
         {
             string pwd = Utils.GenToken().Substring(0, 32);
-            string zip_file_path =
-                Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-            try
+
+            using (var temp_file_use = new TempFileUse(".zip"))
             {
+                string zip_file_path = temp_file_use.FilePath;
                 using (var zip = new ZipFile(zip_file_path))
                 {
-                    App.Log("Adding files to package...");
-                    m_lastZipCurrentFilename = "";
                     zip.SaveProgress += Zip_SaveProgress;
-
                     zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
+                    zip.Encryption = EncryptionAlgorithm.WinZipAes256;
                     zip.Password = pwd;
 
+                    App.Log("Adding files to package...");
+                    m_lastZipCurrentFilename = "";
                     foreach (var path in paths)
                     {
                         if (File.Exists(path))
@@ -59,10 +59,10 @@ namespace msgfiles
                         contentLength = zip_file_size_bytes,
                         headers = new Dictionary<string, string>()
                         {
-                            { "to", string.Join("; ", to) },
-                            { "message", message },
-                            { "pwd", pwd },
-                            { "hash", zip_hash }
+                        { "to", string.Join("; ", to) },
+                        { "message", message },
+                        { "pwd", pwd },
+                        { "hash", zip_hash }
                         }
                     };
                 if (ServerStream == null)
@@ -105,11 +105,6 @@ namespace msgfiles
 
                 return true;
             }
-            finally
-            {
-                if (File.Exists(zip_file_path))
-                    File.Delete(zip_file_path);
-            }
         }
 
         public bool GetMessage(string pwd, out string token, out bool shouldDelete)
@@ -146,9 +141,9 @@ namespace msgfiles
                 else
                     token = m.token;
 
-                string temp_file_path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-                try
+                using (var temp_file_use = new TempFileUse(".zip"))
                 {
+                    string temp_file_path = temp_file_use.FilePath;
                     if (!App.ConfirmDownload(m.from, m.message, out shouldDelete))
                         return false;
  
@@ -191,24 +186,17 @@ namespace msgfiles
                         throw new NetworkException("File transmission error");
 
                     App.Log($"Examining downloaded files...");
-                    int file_count = 0;
-                    long total_size_bytes = 0;
-                    string manifest = ManifestZip(temp_file_path, pwd, out file_count, out total_size_bytes);
+                    string manifest = ManifestZip(temp_file_path, pwd);
                     if (App.Cancelled)
                         return false;
 
                     string extraction_dir_path = "";
-                    if (!App.ConfirmExtraction(manifest, file_count, total_size_bytes, out shouldDelete, out extraction_dir_path))
+                    if (!App.ConfirmExtraction(manifest, out shouldDelete, out extraction_dir_path))
                         return false;
 
                     App.Log($"Saving downloaded files...");
                     ExtractZip(temp_file_path, pwd, extraction_dir_path);
                     return true;
-                }
-                finally
-                {
-                    if (File.Exists(temp_file_path))
-                        File.Delete(temp_file_path);
                 }
             }
         }
@@ -242,30 +230,32 @@ namespace msgfiles
             return true;
         }
 
-        private string ManifestZip(string zipFilePath, string pwd, out int fileCount, out long totalByteCount)
+        private string ManifestZip(string zipFilePath, string pwd)
         {
-            fileCount = 0;
-            totalByteCount = 0;
-            StringBuilder sb = new StringBuilder();
+            int file_count = 0;
+            long total_byte_count = 0;
+            StringBuilder entry_lines = new StringBuilder();
             Dictionary<string, int> ext_counts = new Dictionary<string, int>();
-            using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
+            using (var zip_file = new ZipFile(zipFilePath))
             {
                 zip_file.Password = pwd;
+
                 foreach (var zip_entry in zip_file.Entries)
                 {
                     if (zip_entry.IsDirectory)
                         continue;
 
                     string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
-                    sb.AppendLine($"{zip_entry.FileName} ({size_str})");
+                    entry_lines.AppendLine($"{zip_entry.FileName} ({size_str})");
 
                     string ext = Path.GetExtension(zip_entry.FileName).ToUpper();
-                    if (!ext_counts.ContainsKey(ext))
-                        ext_counts[ext] = 0;
-                    ++ext_counts[ext];
+                    if (ext_counts.ContainsKey(ext))
+                        ++ext_counts[ext];
+                    else
+                        ext_counts[ext] = 1;
 
-                    ++fileCount;
-                    totalByteCount += zip_entry.UncompressedSize;
+                    ++file_count;
+                    total_byte_count += zip_entry.UncompressedSize;
                 }
             }
 
@@ -279,7 +269,14 @@ namespace msgfiles
                         .OrderBy(str => str)
                 );
 
-            return ext_summary + "\r\n\r\n" + sb.ToString();
+            return 
+                $"Files: {file_count}" +
+                $" - " +
+                $"Total: {Utils.ByteCountToStr(total_byte_count)}" +
+                $"\r\n\r\n" +
+                $"{ext_summary}" +
+                $"\r\n\r\n" + 
+                $"{entry_lines}";
         }
 
         private void ExtractZip(string zipFilePath, string pwd, string extractionDirPath)
@@ -306,13 +303,7 @@ namespace msgfiles
                 App.Log(m_lastZipCurrentFilename);
             }
 
-            double min_progress =
-                Math.Min
-                (
-                    (double)e.EntriesSaved / Math.Max(e.EntriesTotal, 1),
-                    (double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1)
-                );
-            App.Progress(min_progress);
+            App.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
         }
 
         private void Zip_ExtractProgress(object? sender, ExtractProgressEventArgs e)
@@ -329,13 +320,7 @@ namespace msgfiles
                 App.Log(m_lastZipCurrentFilename);
             }
 
-            double min_progress =
-                Math.Min
-                (
-                    (double)e.EntriesExtracted / Math.Max(e.EntriesTotal, 1),
-                    (double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1)
-                );
-            App.Progress(min_progress);
+            App.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
         }
 
         private string m_lastZipCurrentFilename = "";

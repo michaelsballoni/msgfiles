@@ -32,13 +32,13 @@ namespace msgfiles
         }
         public void Log(string msg)
         {
-            Application.DoEvents();
             LogOutputTextBox.AppendText(msg + "\r\n");
+            Application.DoEvents();
         }
         public void Progress(double progress)
         {
-            Application.DoEvents();
             StatusProgressBar.Value = (int)Math.Round(progress * StatusProgressBar.Maximum);
+            Application.DoEvents();
         }
         public bool ConfirmDownload
         (
@@ -61,18 +61,13 @@ namespace msgfiles
         public bool ConfirmExtraction
         (
             string manifest, 
-            int fileCount, 
-            long totalSizeBytes, 
             out bool shouldDelete,
             out string extractionFolder)
         {
             shouldDelete = false;
             extractionFolder = "";
 
-            string to_confirm =
-                $"Files: {fileCount} - Total: {Utils.ByteCountToStr(totalSizeBytes)}\r\n\r\n" +
-                $"{manifest}";
-            using (var dlg = new ConfirmForm("Do these file contents look good?", to_confirm))
+            using (var dlg = new ConfirmForm("Do these file contents look good?", manifest))
             {
                 bool should_continue = dlg.ShowDialog() == DialogResult.OK;
                 shouldDelete = !should_continue && dlg.ShouldDelete;
