@@ -1,13 +1,10 @@
-﻿using System.Text;
-
-using Ionic.Zip;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace msgfiles
 {
     public class MsgRequestHandler : IServerRequestHandler
     {
-        public static int MaxSendPayloadMB = 1024; // FORNOW - Load from config
+        public static int MaxSendPayloadMB;
 
         public MsgRequestHandler(AllowBlock allowBlock, FileStore fileStore, MessageStore msgStore)
         {
@@ -59,8 +56,15 @@ namespace msgfiles
                 throw new InputException("Header missing: pwd");
 
             long package_size_bytes = request.contentLength;
-            if (package_size_bytes / 1024 / 1024 > MaxSendPayloadMB)
+            if
+            (
+                MaxSendPayloadMB > 0
+                &&
+                package_size_bytes / 1024 / 1024 > MaxSendPayloadMB
+            )
+            {
                 throw new InputException("Header invalid: package too big");
+            }
 
             string sent_zip_hash = request.headers["hash"];
             if (sent_zip_hash == "")

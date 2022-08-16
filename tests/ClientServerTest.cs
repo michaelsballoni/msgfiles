@@ -132,7 +132,7 @@ namespace msgfiles
         public void TestServer()
         {
             using (var app = new TestServerApp())
-            using (Server server = new Server(app, 9914, "test.msgfiles.io"))
+            using (Server server = new Server(app, 9914))
             {
                 new Thread(Accepter).Start(server);
                 while (!server.Ready)
@@ -158,7 +158,7 @@ namespace msgfiles
             var client_app = new TestClientApp();
 
             using (var server_app = new TestServerApp())
-            using (Server server = new Server(server_app, 9914, "test.msgfiles.io"))
+            using (Server server = new Server(server_app, 9914))
             {
                 new Thread(Accepter).Start(server);
                 while (!server.Ready)

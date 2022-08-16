@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Threading;
 
 namespace msgfiles
 {
@@ -12,6 +13,33 @@ namespace msgfiles
                 Environment.CurrentDirectory;
 
             m_settings = new Settings(Path.Combine(m_thisExeDirPath, "settings.ini"));
+
+            if (!int.TryParse
+            (
+                m_settings.Get("application", "MaxSendPayloadMB"), 
+                out MsgRequestHandler.MaxSendPayloadMB
+            ))
+            {
+                throw new InputException("Invalid settings.ini: MaxSendPayloadMB");
+            }
+
+            if (!int.TryParse
+            (
+                m_settings.Get("application", "ReceiveTimeoutSeconds"),
+                out Server.ReceiveTimeoutSeconds
+            ))
+            {
+                throw new InputException("Invalid settings.ini: ReceiveTimeoutSeconds");
+            }
+
+            if (!int.TryParse
+            (
+                m_settings.Get("application", "ServerPort"),
+                out ServerPort
+            ))
+            {
+                throw new InputException("Invalid settings.ini: ServerPort");
+            }
 
             m_settingsWatcher = new FileSystemWatcher(m_thisExeDirPath, "*.ini");
             m_settingsWatcher.Changed += SettingsWatcher_Changed;
@@ -40,6 +68,8 @@ namespace msgfiles
                     m_settings.Get("application", "MailPassword")
                 );
 
+            m_maintenanceTimer = new Timer(MaintenanceTimer, null, 0, 60 * 1000);
+
             var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
             var to_dict = new Dictionary<string, string>();
             to_dict.Add(to_kvp.Key, to_kvp.Value);
@@ -51,6 +81,8 @@ namespace msgfiles
                 "So far so good..."
             ).Wait();
         }
+
+        public int ServerPort;
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
         {
@@ -163,6 +195,20 @@ namespace msgfiles
                 return new HashSet<string>();
         }
 
+        private void MaintenanceTimer(object state)
+        {
+            int age_off_days;
+            if (int.TryParse(
+                m_settings.Get("application", "AgeOffDays"),
+                out age_off_days
+            ))
+            {
+                m_sessions.DropOldSessions(86400 * age_off_days);
+                m_messageStore.DeleteOldMessages(86400 * age_off_days);
+                m_fileStore.DeleteOldFiles(86400 * age_off_days);
+            }
+        }
+
         private SessionStore m_sessions;
 
         private Settings m_settings;
@@ -176,6 +222,7 @@ namespace msgfiles
 
         private FileStore m_fileStore;
         private MessageStore m_messageStore;
+
+        private Timer m_maintenanceTimer;
     }
 }
-

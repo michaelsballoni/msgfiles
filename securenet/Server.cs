@@ -7,17 +7,17 @@ namespace msgfiles
 {
     public class Server : IDisposable
     {
-        public Server(IServerApp app, int port, string hostname)
+        public Server(IServerApp app, int port)
         {
             m_app = app;
             m_port = port;
 
-            m_cert = SecureNet.GenCert(hostname);
+            m_cert = SecureNet.GenCert("msgfiles");
 
             m_listener = new TcpListener(IPAddress.Loopback, m_port);
         }
 
-        public static int ReceiveTimeoutSeconds = 900; // FORNOW - Set from config
+        public static int ReceiveTimeoutSeconds;
 
         public void Dispose()
         {
@@ -35,7 +35,8 @@ namespace msgfiles
                 {
                     TcpClient new_client = m_listener.AcceptTcpClient();
                     new_client.NoDelay = true;
-                    new_client.ReceiveTimeout = ReceiveTimeoutSeconds * 1000;
+                    if (ReceiveTimeoutSeconds > 0)
+                        new_client.ReceiveTimeout = ReceiveTimeoutSeconds * 1000;
 
                     if (!m_keepRunning)
                         break;

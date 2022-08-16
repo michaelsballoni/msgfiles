@@ -10,6 +10,8 @@ namespace msgfiles
         [Test]
         public void TestTempFileStore()
         {
+            TempFileStore.DisableAutoCleanup();
+
             var temp_file_use = new TempFileUse(".txt");
             string temp_file_path = temp_file_use.FilePath;
             File.WriteAllText(temp_file_path, "foo bar");

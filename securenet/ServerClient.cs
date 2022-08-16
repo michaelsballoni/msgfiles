@@ -144,31 +144,46 @@ namespace msgfiles
                     }
                 }
             }
-            catch (SocketException)
-            {
-                Log("Socket Exception");
-            }
-            catch (NetworkException exp)
-            {
-                Log($"{Utils.SumExp(exp)}");
-            }
             catch (Exception exp)
             {
                 exp = Utils.SmashExp(exp);
-                bool is_input_exp = exp is InputException;
-                Log($"{Utils.SumExp(exp)}");
-                try
+
+                if (exp is SocketException || exp is NetworkException)
                 {
-                    var error_response =
-                        new ServerResponse()
-                        {
-                            version = 1,
-                            statusCode = is_input_exp ? 400 : 500,
-                            statusMessage = is_input_exp ? exp.Message : "Internal Server Error"
-                        };
-                    SecureNet.SendObjectAsync(m_stream, error_response).Wait();
+                    Log($"Network error: {exp.Message}");
                 }
-                catch { }
+                else if (exp is InputException)
+                {
+                    Log($"Input error: {exp.Message}");
+                    try
+                    {
+                        var error_response =
+                            new ServerResponse()
+                            {
+                                version = 1,
+                                statusCode = 400,
+                                statusMessage = exp.Message
+                            };
+                        SecureNet.SendObjectAsync(m_stream, error_response).Wait();
+                    }
+                    catch { }
+                }
+                else
+                {
+                    Log($"{Utils.SumExp(exp)}");
+                    try
+                    {
+                        var error_response =
+                            new ServerResponse()
+                            {
+                                version = 1,
+                                statusCode = 500,
+                                statusMessage = "Internal Server Error"
+                            };
+                        SecureNet.SendObjectAsync(m_stream, error_response).Wait();
+                    }
+                    catch { }
+                }
             }
         }
 

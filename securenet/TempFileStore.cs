@@ -1,4 +1,6 @@
-﻿namespace msgfiles
+﻿using System.Threading;
+
+namespace msgfiles
 {
     public class TempFileUse : IDisposable
     {
@@ -48,43 +50,77 @@
                 sm_filesInUse.Remove(filePath);
         }
 
-        public static void CleanupDir(int maxAgeSeconds)
+        public static void CleanupDir(object? state)
         {
-            lock (sm_tempFileDirPath)
+            int max_seconds =
+                (state == null || !(state is int))
+                ? sm_cleanupIntervalSeconds
+                : (int)state;
+
+            if (sm_inCleanupTimer)
+                return;
+            lock (sm_cleanupTimerLock)
             {
-                if (!Directory.Exists(sm_tempFileDirPath))
+                if (sm_inCleanupTimer)
                     return;
-            }
+                sm_inCleanupTimer = true;
 
-            DateTime old_time = DateTime.UtcNow - new TimeSpan(0, 0, maxAgeSeconds);
-
-            var file_paths_to_delete = new List<string>();
-            var file_paths = Directory.GetFiles(sm_tempFileDirPath);
-            lock (sm_filesInUse)
-            {
-                foreach (string file_path in file_paths)
-                {
-                    if (sm_filesInUse.Contains(file_path))
-                        continue;
-
-                    if (!File.Exists(file_path) || File.GetLastAccessTimeUtc(file_path) < old_time)
-                        file_paths_to_delete.Add(file_path);
-                }
-            }
-
-            foreach (var file_path in file_paths_to_delete)
-            {
                 try
                 {
-                    if (File.Exists(file_path))
-                        File.Delete(file_path);
+                    lock (sm_tempFileDirPath)
+                    {
+                        if (!Directory.Exists(sm_tempFileDirPath))
+                            return;
+                    }
+
+                    DateTime old_time =
+                        DateTime.UtcNow - new TimeSpan(0, 0, max_seconds);
+
+                    var file_paths_to_delete = new List<string>();
+                    var file_paths = Directory.GetFiles(sm_tempFileDirPath);
+                    lock (sm_filesInUse)
+                    {
+                        foreach (string file_path in file_paths)
+                        {
+                            if (sm_filesInUse.Contains(file_path))
+                                continue;
+
+                            if (!File.Exists(file_path) || File.GetLastAccessTimeUtc(file_path) < old_time)
+                                file_paths_to_delete.Add(file_path);
+                        }
+                    }
+
+                    foreach (var file_path in file_paths_to_delete)
+                    {
+                        try
+                        {
+                            if (File.Exists(file_path))
+                                File.Delete(file_path);
+                        }
+                        catch { }
+                    }
                 }
-                catch { }
+                finally
+                {
+                    sm_inCleanupTimer = false;
+                }
             }
+        }
+
+        public static void DisableAutoCleanup()
+        {
+            sm_cleanupTimer.Dispose();
         }
 
         private static string sm_tempFileDirPath = 
             Path.Combine(Path.GetTempPath(), "msgfiles-temp");
+
         private static HashSet<string> sm_filesInUse = new HashSet<string>();
+
+        private const int sm_cleanupIntervalSeconds = 10;
+        private static Timer sm_cleanupTimer = 
+            new Timer(CleanupDir, null, 0, sm_cleanupIntervalSeconds * 1000);
+        private static object sm_cleanupTimerLock = new object();
+        private static bool sm_inCleanupTimer = false;
     }
 }

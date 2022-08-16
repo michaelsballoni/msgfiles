@@ -1,4 +1,6 @@
-﻿namespace msgfiles
+﻿using System.Net.Sockets;
+
+namespace msgfiles
 {
     public partial class ConnectForm : Form, IClientApp
     {
@@ -151,7 +153,14 @@
             }
             catch (Exception exp)
             {
-                MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
+                exp = Utils.SmashExp(exp);
+
+                if (exp is InputException)
+                    MessageBox.Show(exp.Message);
+                else if (exp is SocketException || exp is NetworkException)
+                    MessageBox.Show($"Network error: {exp.Message}");
+                else
+                    MessageBox.Show($"Unexpected error: {exp.Message}");
             }
             finally
             {

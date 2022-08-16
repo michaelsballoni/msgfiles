@@ -135,10 +135,16 @@ namespace msgfiles
                                     break;
                                 }
                             }
-                            catch (NetworkException)
+                            catch (Exception exp)
                             {
-                                Log("Authentication failed due to a network error, will retry");
-                                Thread.Sleep(seconds_between_retries * 1000);
+                                exp = Utils.SmashExp(exp);
+                                if (exp is SocketException || exp is NetworkException)
+                                {
+                                    Log("Authentication failed due to a network error, will retry");
+                                    Thread.Sleep(seconds_between_retries * 1000);
+                                }
+                                else
+                                    throw;
                             }
                         }
 
@@ -201,24 +207,25 @@ namespace msgfiles
                             throw new NullReferenceException("m_msg and m_pwd");
                     }
                 }
-                catch (SocketException)
-                {
-                    Log("The operation failed due to a network error, will retry...");
-                    Thread.Sleep(seconds_between_retries * 1000);
-                }
-                catch (NetworkException)
-                {
-                    Log("The operation failed due to a network error, will retry...");
-                    Thread.Sleep(seconds_between_retries * 1000);
-                }
                 catch (Exception exp)
                 {
                     exp = Utils.SmashExp(exp);
-                    if (exp is InputException)
+
+                    if (exp is SocketException || exp is NetworkException)
+                    {
+                        Log("The operation failed due to a network error, will retry...");
+                        Thread.Sleep(seconds_between_retries * 1000);
+                    }
+                    else if (exp is InputException)
+                    {
                         MessageBox.Show(exp.Message);
+                        return;
+                    }
                     else
-                        MessageBox.Show($"ERROR: {Utils.SumExp(exp)}");
-                    return;
+                    {
+                        MessageBox.Show($"Unexpected error: {exp.Message}");
+                        return;
+                    }
                 }
                 finally
                 {

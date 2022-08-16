@@ -265,7 +265,7 @@ namespace msgfiles
                 (
                     "\r\n", 
                     ext_counts
-                        .Select(kvp => $"{kvp.Key}: {kvp.Value}")
+                        .Select(kvp => $"{kvp.Key.Trim('.')}: {kvp.Value}")
                         .OrderBy(str => str)
                 );
 
