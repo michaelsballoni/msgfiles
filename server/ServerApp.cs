@@ -7,12 +7,20 @@ namespace msgfiles
     {
         public ServerApp()
         {
-            m_thisExeDirPath =
-                Path.GetDirectoryName(Process.GetCurrentProcess().Modules[0].FileName)
-                ??
-                Environment.CurrentDirectory;
+            m_docsDirPath =
+                Path.Combine
+                (
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    "msgfiles-server"
+                );
+            if (!Directory.Exists(m_docsDirPath))
+                Directory.CreateDirectory(m_docsDirPath);
 
-            m_settings = new Settings(Path.Combine(m_thisExeDirPath, "settings.ini"));
+            string settings_file_path = Path.Combine(m_docsDirPath, "settings.ini");
+            if (!File.Exists(settings_file_path))
+                throw new InputException($"Startup Error: settings.ini file does not exist in {m_docsDirPath}");
+            
+            m_settings = new Settings(settings_file_path);
 
             if (!int.TryParse
             (
@@ -20,7 +28,7 @@ namespace msgfiles
                 out MsgRequestHandler.MaxSendPayloadMB
             ))
             {
-                throw new InputException("Invalid settings.ini: MaxSendPayloadMB");
+                throw new InputException("Startup Error: Invalid settings.ini: MaxSendPayloadMB");
             }
 
             if (!int.TryParse
@@ -29,7 +37,7 @@ namespace msgfiles
                 out Server.ReceiveTimeoutSeconds
             ))
             {
-                throw new InputException("Invalid settings.ini: ReceiveTimeoutSeconds");
+                throw new InputException("Startup Error: Invalid settings.ini: ReceiveTimeoutSeconds");
             }
 
             if (!int.TryParse
@@ -38,24 +46,24 @@ namespace msgfiles
                 out ServerPort
             ))
             {
-                throw new InputException("Invalid settings.ini: ServerPort");
+                throw new InputException("Startup Error: Invalid settings.ini: ServerPort");
             }
 
-            m_settingsWatcher = new FileSystemWatcher(m_thisExeDirPath, "*.ini");
+            m_settingsWatcher = new FileSystemWatcher(m_docsDirPath, "*.ini");
             m_settingsWatcher.Changed += SettingsWatcher_Changed;
             m_settingsWatcher.Created += SettingsWatcher_Changed;
             m_settingsWatcher.Deleted += SettingsWatcher_Changed;
             SettingsWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
-            m_txtFilesWatcher = new FileSystemWatcher(m_thisExeDirPath, "*.txt");
+            m_txtFilesWatcher = new FileSystemWatcher(m_docsDirPath, "*.txt");
             m_txtFilesWatcher.Changed += TextWatcher_Changed;
             m_txtFilesWatcher.Created += TextWatcher_Changed;
             m_txtFilesWatcher.Deleted += TextWatcher_Changed;
             TextWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
-            m_sessions = new SessionStore(Path.Combine(m_thisExeDirPath, "sessions.db"));
+            m_sessions = new SessionStore(Path.Combine(m_docsDirPath, "sessions.db"));
 
-            m_messageStore = new MessageStore(Path.Combine(m_thisExeDirPath, "messages.db"));
+            m_messageStore = new MessageStore(Path.Combine(m_docsDirPath, "messages.db"));
 
             m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
 
@@ -180,7 +188,7 @@ namespace msgfiles
 
         private HashSet<string> LoadFileList(string fileName)
         {
-            string file_path = Path.Combine(m_thisExeDirPath, fileName);
+            string file_path = Path.Combine(m_docsDirPath, fileName);
             if (File.Exists(file_path))
             {
                 return
@@ -195,7 +203,7 @@ namespace msgfiles
                 return new HashSet<string>();
         }
 
-        private void MaintenanceTimer(object state)
+        private void MaintenanceTimer(object? state)
         {
             int age_off_days;
             if (int.TryParse(
@@ -214,7 +222,7 @@ namespace msgfiles
         private Settings m_settings;
         private AllowBlock m_allowBlock = new AllowBlock();
 
-        private string m_thisExeDirPath;
+        private string m_docsDirPath;
         private FileSystemWatcher m_settingsWatcher;
         private FileSystemWatcher m_txtFilesWatcher;
 

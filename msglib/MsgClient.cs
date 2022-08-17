@@ -1,6 +1,5 @@
 ﻿using System.Text;
 
-using Ionic.Zip;
 using Newtonsoft.Json;
 
 namespace msgfiles
@@ -21,28 +20,9 @@ namespace msgfiles
             using (var temp_file_use = new TempFileUse(".zip"))
             {
                 string zip_file_path = temp_file_use.FilePath;
-                using (var zip = new ZipFile(zip_file_path))
-                {
-                    zip.SaveProgress += Zip_SaveProgress;
-                    zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
-                    zip.Encryption = EncryptionAlgorithm.WinZipAes256;
-                    zip.Password = pwd;
 
-                    App.Log("Adding files to package...");
-                    m_lastZipCurrentFilename = "";
-                    foreach (var path in paths)
-                    {
-                        if (File.Exists(path))
-                            zip.AddFile(path, "");
-                        else if (Directory.Exists(path))
-                            zip.AddDirectory(path, Path.GetFileName(path));
-                        else
-                            throw new InputException($"Item to send not found: {path}");
-                    }
-
-                    App.Log("Saving package...");
-                    zip.Save();
-                }
+                App.Log("Adding files to package...");
+                Utils.CreateZip(App, zip_file_path, pwd, paths);
 
                 App.Log("Scanning package...");
                 string zip_hash;
@@ -186,7 +166,7 @@ namespace msgfiles
                         throw new NetworkException("File transmission error");
 
                     App.Log($"Examining downloaded files...");
-                    string manifest = ManifestZip(temp_file_path, pwd);
+                    string manifest = Utils.ManifestZip(temp_file_path, pwd);
                     if (App.Cancelled)
                         return false;
 
@@ -195,7 +175,7 @@ namespace msgfiles
                         return false;
 
                     App.Log($"Saving downloaded files...");
-                    ExtractZip(temp_file_path, pwd, extraction_dir_path);
+                    Utils.ExtractZip(App, temp_file_path, pwd, extraction_dir_path);
                     return true;
                 }
             }
@@ -229,100 +209,5 @@ namespace msgfiles
 
             return true;
         }
-
-        private string ManifestZip(string zipFilePath, string pwd)
-        {
-            int file_count = 0;
-            long total_byte_count = 0;
-            StringBuilder entry_lines = new StringBuilder();
-            Dictionary<string, int> ext_counts = new Dictionary<string, int>();
-            using (var zip_file = new ZipFile(zipFilePath))
-            {
-                zip_file.Password = pwd;
-
-                foreach (var zip_entry in zip_file.Entries)
-                {
-                    if (zip_entry.IsDirectory)
-                        continue;
-
-                    string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
-                    entry_lines.AppendLine($"{zip_entry.FileName} ({size_str})");
-
-                    string ext = Path.GetExtension(zip_entry.FileName).ToUpper();
-                    if (ext_counts.ContainsKey(ext))
-                        ++ext_counts[ext];
-                    else
-                        ext_counts[ext] = 1;
-
-                    ++file_count;
-                    total_byte_count += zip_entry.UncompressedSize;
-                }
-            }
-
-            string ext_summary =
-                "File Types:\r\n" +
-                string.Join
-                (
-                    "\r\n", 
-                    ext_counts
-                        .Select(kvp => $"{kvp.Key.Trim('.')}: {kvp.Value}")
-                        .OrderBy(str => str)
-                );
-
-            return 
-                $"Files: {file_count}" +
-                $" - " +
-                $"Total: {Utils.ByteCountToStr(total_byte_count)}" +
-                $"\r\n\r\n" +
-                $"{ext_summary}" +
-                $"\r\n\r\n" + 
-                $"{entry_lines}";
-        }
-
-        private void ExtractZip(string zipFilePath, string pwd, string extractionDirPath)
-        {
-            using (var zip = new ZipFile(zipFilePath))
-            {
-                zip.Password = pwd;
-                zip.ExtractProgress += Zip_ExtractProgress;
-                zip.ExtractAll(extractionDirPath);
-            }
-        }
-
-        private void Zip_SaveProgress(object? sender, SaveProgressEventArgs e)
-        {
-            if (App.Cancelled)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            if (e.CurrentEntry != null && e.CurrentEntry.FileName != m_lastZipCurrentFilename)
-            {
-                m_lastZipCurrentFilename = e.CurrentEntry.FileName;
-                App.Log(m_lastZipCurrentFilename);
-            }
-
-            App.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
-        }
-
-        private void Zip_ExtractProgress(object? sender, ExtractProgressEventArgs e)
-        {
-            if (App.Cancelled)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            if (e.CurrentEntry != null && e.CurrentEntry.FileName != m_lastZipCurrentFilename)
-            {
-                m_lastZipCurrentFilename = e.CurrentEntry.FileName;
-                App.Log(m_lastZipCurrentFilename);
-            }
-
-            App.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
-        }
-
-        private string m_lastZipCurrentFilename = "";
     }
 }

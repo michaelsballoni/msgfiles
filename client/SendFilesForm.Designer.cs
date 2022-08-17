@@ -196,6 +196,7 @@
             this.Name = "SendFilesForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Send Files";
+            this.Load += new System.EventHandler(this.SendFilesForm_Load);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.SendFilesForm_DragEnter);
             this.groupBox1.ResumeLayout(false);

@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Data;
 
 namespace msgfiles
 {
@@ -104,20 +96,7 @@ namespace msgfiles
             }
         }
 
-        private void DragDropPanel_DragDrop(object sender, DragEventArgs e)
-        {
-            DoDragDrop(sender, e);
-        }
-        private void DragAndDropLabel_DragDrop(object sender, DragEventArgs e)
-        {
-            DoDragDrop(sender, e);
-        }
         private void SendFilesForm_DragDrop(object sender, DragEventArgs e)
-        {
-            DoDragDrop(sender, e);
-        }
-
-        private void DoDragDrop(object sender, DragEventArgs e)
         {
             if (e.Data == null)
             {
@@ -151,20 +130,7 @@ namespace msgfiles
             }
         }
 
-        private void DragDropPanel_DragEnter(object sender, DragEventArgs e)
-        {
-            DoDragEnter(sender, e);
-        }
-        private void DragAndDropLabel_DragEnter(object sender, DragEventArgs e)
-        {
-            DoDragEnter(sender, e);
-        }
         private void SendFilesForm_DragEnter(object sender, DragEventArgs e)
-        {
-            DoDragEnter(sender, e);
-        }
-
-        private void DoDragEnter(object sender, DragEventArgs e)
         {
             if (e == null || e.Data == null)
                 return;
@@ -233,6 +199,12 @@ namespace msgfiles
                 if (dlg.ShowDialog() == DialogResult.OK)
                     ToAddresses = dlg.AddressesToSendTo;
             }
+        }
+
+        private void SendFilesForm_Load(object sender, EventArgs e)
+        {
+            Show();
+            AddressButton_Click(sender, e);
         }
     }
 }

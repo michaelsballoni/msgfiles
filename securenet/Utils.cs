@@ -184,6 +184,109 @@ namespace msgfiles
                 return $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
         }
 
+        public static void CreateZip(IClientApp app, string zipFilePath, string pwd, IEnumerable<string> paths)
+        {
+            using (var zip = new Ionic.Zip.ZipFile(zipFilePath))
+            {
+                zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
+                zip.Encryption = Ionic.Zip.EncryptionAlgorithm.WinZipAes256;
+                zip.Password = pwd;
+                string lastZipCurrentFilename = "";
+                zip.SaveProgress +=
+                    (object? sender, Ionic.Zip.SaveProgressEventArgs e) =>
+                    {
+                        if (e.CurrentEntry != null && e.CurrentEntry.FileName != lastZipCurrentFilename)
+                        {
+                            lastZipCurrentFilename = e.CurrentEntry.FileName;
+                            app.Log(lastZipCurrentFilename);
+                        }
+
+                        app.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
+                    };
+                foreach (var path in paths)
+                {
+                    if (File.Exists(path))
+                        zip.AddFile(path, "");
+                    else if (Directory.Exists(path))
+                        zip.AddDirectory(path, Path.GetFileName(path));
+                    else
+                        throw new InputException($"Item to send not found: {path}");
+                }
+
+                zip.Save();
+            }
+        }
+
+        public static string ManifestZip(string zipFilePath, string pwd)
+        {
+            int file_count = 0;
+            long total_byte_count = 0;
+            StringBuilder entry_lines = new StringBuilder();
+            Dictionary<string, int> ext_counts = new Dictionary<string, int>();
+            using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
+            {
+                zip_file.Password = pwd;
+
+                foreach (var zip_entry in zip_file.Entries)
+                {
+                    if (zip_entry.IsDirectory)
+                        continue;
+
+                    string size_str = Utils.ByteCountToStr(zip_entry.UncompressedSize);
+                    entry_lines.AppendLine($"{zip_entry.FileName} ({size_str})");
+
+                    string ext = Path.GetExtension(zip_entry.FileName).ToUpper();
+                    if (ext_counts.ContainsKey(ext))
+                        ++ext_counts[ext];
+                    else
+                        ext_counts[ext] = 1;
+
+                    ++file_count;
+                    total_byte_count += zip_entry.UncompressedSize;
+                }
+            }
+
+            string ext_summary =
+                "File Types:\r\n" +
+                string.Join
+                (
+                    "\r\n",
+                    ext_counts
+                        .Select(kvp => $"{kvp.Key.Trim('.')}: {kvp.Value}")
+                        .OrderBy(str => str)
+                );
+
+            return
+                $"Files: {file_count}" +
+                $" - " +
+                $"Total: {Utils.ByteCountToStr(total_byte_count)}" +
+                $"\r\n\r\n" +
+                $"{ext_summary}" +
+                $"\r\n\r\n" +
+                $"{entry_lines}";
+        }
+
+        public static void ExtractZip(IClientApp app, string zipFilePath, string pwd, string extractionDirPath)
+        {
+            using (var zip = new Ionic.Zip.ZipFile(zipFilePath))
+            {
+                zip.Password = pwd;
+                string lastZipCurrentFilename = "";
+                zip.ExtractProgress +=
+                (object? sender, Ionic.Zip.ExtractProgressEventArgs e) =>
+                {
+                    if (e.CurrentEntry != null && e.CurrentEntry.FileName != lastZipCurrentFilename)
+                    {
+                        lastZipCurrentFilename = e.CurrentEntry.FileName;
+                        app.Log(lastZipCurrentFilename);
+                    }
+
+                    app.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
+                };
+                zip.ExtractAll(extractionDirPath);
+            }
+        }
+
         public static string Encrypt(string plainText, string key)
         {
             return 
