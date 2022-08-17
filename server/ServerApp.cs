@@ -101,8 +101,8 @@ namespace msgfiles
         {
             m_allowBlock.SetLists
             (
-                LoadFileList("allowed.txt"),
-                LoadFileList("blocked.txt")
+                LoadFileList("allow.txt"),
+                LoadFileList("block.txt")
             );
         }
 
