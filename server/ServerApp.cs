@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace msgfiles
 {
-    internal class ServerApp : IServerApp
+    internal class ServerApp : IServerApp, IDisposable
     {
         public ServerApp()
         {
@@ -67,6 +67,8 @@ namespace msgfiles
 
             m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
 
+            m_logStore = new LogStore(Path.Combine(m_docsDirPath, "logs"));
+
             m_emailClient =
                 new EmailClient
                 (
@@ -90,7 +92,16 @@ namespace msgfiles
             ).Wait();
         }
 
+        public void Dispose()
+        {
+            m_sessions.Dispose();
+            m_messageStore.Dispose();
+            m_logStore.Dispose();
+        }
+
         public int ServerPort;
+        public string AppDocsDirPath => m_docsDirPath;
+        public string FileStoreDirPath => m_fileStore == null ? "" : m_fileStore.DirPath;
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
         {
@@ -111,7 +122,7 @@ namespace msgfiles
 
         public void Log(string msg)
         {
-            Console.WriteLine(msg);
+            m_logStore.Log(msg);
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
@@ -214,6 +225,7 @@ namespace msgfiles
                 m_sessions.DropOldSessions(86400 * age_off_days);
                 m_messageStore.DeleteOldMessages(86400 * age_off_days);
                 m_fileStore.DeleteOldFiles(86400 * age_off_days);
+                m_logStore.DeleteOldLogs(86400 * age_off_days);
             }
         }
 
@@ -230,6 +242,7 @@ namespace msgfiles
 
         private FileStore m_fileStore;
         private MessageStore m_messageStore;
+        private LogStore m_logStore;
 
         private Timer m_maintenanceTimer;
     }

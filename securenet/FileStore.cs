@@ -16,6 +16,8 @@ namespace msgfiles
             m_dirPath = dirPath;
         }
 
+        public string DirPath => m_dirPath;
+
         public string StoreFile(string filePath)
         {
             string new_filename = $"{Guid.NewGuid()}.dat";
