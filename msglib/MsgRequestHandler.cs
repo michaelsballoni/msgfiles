@@ -40,7 +40,7 @@ namespace msgfiles
             (
                 request.headers,
                 new[]
-                { "to", "message", "pwd", "packageHash" }
+                { "to", "message", "packageHash" }
             );
 
             string to = request.headers["to"];
@@ -50,10 +50,6 @@ namespace msgfiles
             string message = request.headers["message"];
             if (message == "")
                 throw new InputException("Header missing: message");
-
-            string pwd = request.headers["pwd"];
-            if (pwd == "")
-                throw new InputException("Header missing: pwd");
 
             long package_size_bytes = request.contentLength;
             if
@@ -113,29 +109,30 @@ namespace msgfiles
                     var toos = to.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0);
                     foreach (var too in toos)
                     {
-                        m_msgStore.StoreMessage
-                        (
-                            new msg()
-                            {
-                                from = email_from,
-                                to = too,
-                                message = message
-                            },
-                            pwd,
-                            stored_file_path,
-                            local_zip_hash
-                        );
+                        string token = 
+                            m_msgStore.StoreMessage
+                            (
+                                new msg()
+                                {
+                                    from = email_from,
+                                    to = too,
+                                    message = message
+                                },
+                                stored_file_path,
+                                local_zip_hash
+                            );
+
+                            Log(ctxt, $"Sending email");
+                            await ctxt.App.SendMailDeliveryMessageAsync
+                            (
+                                email_from,
+                                too,
+                                message,
+                                token
+                            );
                     }
                     stored_file_path = "";
 
-                    Log(ctxt, $"Sending email");
-                    await ctxt.App.SendMailDeliveryMessageAsync
-                    (
-                        email_from,
-                        to,
-                        message,
-                        pwd
-                    );
                     return HandlerContext.StandardResponse;
                 }
                 finally
@@ -151,16 +148,16 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
-            Utils.NormalizeDict(request.headers, new[] { "pwd" });
+            Utils.NormalizeDict(request.headers, new[] { "token" });
 
-            string pwd = request.headers["pwd"];
-            if (pwd.Length == 0)
-                throw new InputException("Header missing: pwd");
+            string token = request.headers["token"];
+            if (token.Length == 0)
+                throw new InputException("Header missing: token");
 
-            Log(ctxt, $"Get Message: {to} - {pwd}");
+            Log(ctxt, $"Get Message: {to} - {token}");
 
             string package_file_path, package_file_hash;
-            var msg = m_msgStore.GetMessage(to, pwd, out package_file_path, out package_file_hash);
+            var msg = m_msgStore.GetMessage(to, token, out package_file_path, out package_file_hash);
             
             if (msg == null)
             {

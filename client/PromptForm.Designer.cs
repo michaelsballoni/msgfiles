@@ -37,7 +37,7 @@
             // OkButton
             // 
             this.OkButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.OkButton.Location = new System.Drawing.Point(605, 174);
+            this.OkButton.Location = new System.Drawing.Point(1460, 174);
             this.OkButton.Name = "OkButton";
             this.OkButton.Size = new System.Drawing.Size(188, 58);
             this.OkButton.TabIndex = 3;
@@ -47,7 +47,7 @@
             // ReturnButton
             // 
             this.ReturnButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.ReturnButton.Location = new System.Drawing.Point(800, 174);
+            this.ReturnButton.Location = new System.Drawing.Point(12, 174);
             this.ReturnButton.Name = "ReturnButton";
             this.ReturnButton.Size = new System.Drawing.Size(188, 58);
             this.ReturnButton.TabIndex = 2;
@@ -60,7 +60,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ResultTextBox.Location = new System.Drawing.Point(12, 98);
             this.ResultTextBox.Name = "ResultTextBox";
-            this.ResultTextBox.Size = new System.Drawing.Size(984, 47);
+            this.ResultTextBox.Size = new System.Drawing.Size(1636, 47);
             this.ResultTextBox.TabIndex = 1;
             // 
             // PromptMessageLabel
@@ -78,7 +78,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.ReturnButton;
-            this.ClientSize = new System.Drawing.Size(1022, 262);
+            this.ClientSize = new System.Drawing.Size(1674, 262);
             this.Controls.Add(this.PromptMessageLabel);
             this.Controls.Add(this.ResultTextBox);
             this.Controls.Add(this.ReturnButton);

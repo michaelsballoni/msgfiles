@@ -15,14 +15,12 @@ namespace msgfiles
             IEnumerable<string> paths
         )
         {
-            string pwd = Utils.GenToken().Substring(0, 32);
-
             using (var temp_file_use = new TempFileUse(".zip"))
             {
                 string zip_file_path = temp_file_use.FilePath;
 
                 App.Log("Adding files to package...");
-                Utils.CreateZip(App, zip_file_path, pwd, paths);
+                Utils.CreateZip(App, zip_file_path, paths);
 
                 App.Log("Scanning package...");
                 string zip_hash;
@@ -39,10 +37,9 @@ namespace msgfiles
                         contentLength = zip_file_size_bytes,
                         headers = new Dictionary<string, string>()
                         {
-                        { "to", string.Join("; ", to) },
-                        { "message", message },
-                        { "pwd", pwd },
-                        { "hash", zip_hash }
+                            { "to", string.Join("; ", to) },
+                            { "message", message },
+                            { "hash", zip_hash }
                         }
                     };
                 if (ServerStream == null)
@@ -87,9 +84,8 @@ namespace msgfiles
             }
         }
 
-        public bool GetMessage(string pwd, out string token, out bool shouldDelete)
+        public bool GetMessage(string token, out bool shouldDelete)
         {
-            token = "";
             shouldDelete = false;
 
             App.Log("Sending GET request...");
@@ -98,7 +94,9 @@ namespace msgfiles
                 {
                     version = 1,
                     verb = "GET",
-                    headers = new Dictionary<string, string>() { { "pwd", pwd } }
+                    headers = 
+                        new Dictionary<string, string>() 
+                        { { "token", token } }
                 };
             if (ServerStream == null)
                 return false;
@@ -166,7 +164,7 @@ namespace msgfiles
                         throw new NetworkException("File transmission error");
 
                     App.Log($"Examining downloaded files...");
-                    string manifest = Utils.ManifestZip(temp_file_path, pwd);
+                    string manifest = Utils.ManifestZip(temp_file_path);
                     if (App.Cancelled)
                         return false;
 
@@ -175,7 +173,7 @@ namespace msgfiles
                         return false;
 
                     App.Log($"Saving downloaded files...");
-                    Utils.ExtractZip(App, temp_file_path, pwd, extraction_dir_path);
+                    Utils.ExtractZip(App, temp_file_path, extraction_dir_path);
                     return true;
                 }
             }
@@ -206,7 +204,6 @@ namespace msgfiles
                 if (response.statusCode / 100 != 2)
                     throw response.CreateException();
             }
-
             return true;
         }
     }

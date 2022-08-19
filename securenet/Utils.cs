@@ -184,13 +184,11 @@ namespace msgfiles
                 return $"{Math.Round((double)size / 1024 / 1024 / 1024, 1)} GB";
         }
 
-        public static void CreateZip(IClientApp app, string zipFilePath, string pwd, IEnumerable<string> paths)
+        public static void CreateZip(IClientApp app, string zipFilePath, IEnumerable<string> paths)
         {
             using (var zip = new Ionic.Zip.ZipFile(zipFilePath))
             {
                 zip.CompressionLevel = Ionic.Zlib.CompressionLevel.BestSpeed;
-                zip.Encryption = Ionic.Zip.EncryptionAlgorithm.WinZipAes256;
-                zip.Password = pwd;
                 string lastZipCurrentFilename = "";
                 zip.SaveProgress +=
                     (object? sender, Ionic.Zip.SaveProgressEventArgs e) =>
@@ -217,7 +215,7 @@ namespace msgfiles
             }
         }
 
-        public static string ManifestZip(string zipFilePath, string pwd)
+        public static string ManifestZip(string zipFilePath)
         {
             int file_count = 0;
             long total_byte_count = 0;
@@ -225,8 +223,6 @@ namespace msgfiles
             Dictionary<string, int> ext_counts = new Dictionary<string, int>();
             using (var zip_file = new Ionic.Zip.ZipFile(zipFilePath))
             {
-                zip_file.Password = pwd;
-
                 foreach (var zip_entry in zip_file.Entries)
                 {
                     if (zip_entry.IsDirectory)
@@ -266,11 +262,10 @@ namespace msgfiles
                 $"{entry_lines}";
         }
 
-        public static void ExtractZip(IClientApp app, string zipFilePath, string pwd, string extractionDirPath)
+        public static void ExtractZip(IClientApp app, string zipFilePath, string extractionDirPath)
         {
             using (var zip = new Ionic.Zip.ZipFile(zipFilePath))
             {
-                zip.Password = pwd;
                 string lastZipCurrentFilename = "";
                 zip.ExtractProgress +=
                 (object? sender, Ionic.Zip.ExtractProgressEventArgs e) =>

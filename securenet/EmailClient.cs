@@ -37,7 +37,8 @@ namespace msgfiles
             client.DeliveryMethod = SmtpDeliveryMethod.Network;
             client.EnableSsl = true;
 
-            await client.SendMailAsync(mail_message);
+            client.SendAsync(mail_message, null);
+            await Task.FromResult(0);
         }
 
         private string m_server;

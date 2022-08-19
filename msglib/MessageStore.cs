@@ -20,7 +20,6 @@ namespace msgfiles
                     "fromAddress STRING NOT NULL, " +
                     "toAddress STRING NOT NULL, " +
                     "message STRING NOT NULL, " +
-                    "pwd STRING NOT NULL, " +
                     "path STRING NOT NULL, " +
                     "createdEpoch INTEGER NOT NULL, " +
                     "deleted INTEGER NOT NULL, " +
@@ -54,7 +53,7 @@ namespace msgfiles
             }
         }
 
-        public string StoreMessage(msg msg, string pwd, string path, string hash)
+        public string StoreMessage(msg msg, string path, string hash)
         {
             lock (this)
             {
@@ -69,16 +68,15 @@ namespace msgfiles
 
                 string insert_sql =
                     "INSERT INTO messages " +
-                        "(token, fromAddress, toAddress, message, pwd, path, createdEpoch, deleted, metadata) " +
+                        "(token, fromAddress, toAddress, message, path, createdEpoch, deleted, metadata) " +
                     "VALUES " +
-                     "(@token, @fromAddress, @toAddress, @message, @pwd, @path, @createdEpoch, 0, @metadata)";
+                     "(@token, @fromAddress, @toAddress, @message, @path, @createdEpoch, 0, @metadata)";
                 using (var cmd = new SQLiteCommand(insert_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
                     cmd.Parameters.AddWithValue("@fromAddress", msg.from);
                     cmd.Parameters.AddWithValue("@toAddress", Utils.PrepEmailForLookup(msg.to));
                     cmd.Parameters.AddWithValue("@message", msg.message);
-                    cmd.Parameters.AddWithValue("@pwd", pwd);
                     cmd.Parameters.AddWithValue("@path", path);
                     cmd.Parameters.AddWithValue("@createdEpoch", created_epoch);
                     cmd.Parameters.AddWithValue("@metadata", JsonConvert.SerializeObject(metadata));
@@ -88,7 +86,7 @@ namespace msgfiles
             }
         }
 
-        public msg? GetMessage(string to, string pwd, out string path, out string hash)
+        public msg? GetMessage(string to, string token, out string path, out string hash)
         {
             path = "";
             hash = "";
@@ -97,13 +95,13 @@ namespace msgfiles
             {
                 msg? msg = null;
                 string select_sql =
-                    "SELECT token, fromAddress, message, createdEpoch, path, metadata " +
+                    "SELECT fromAddress, message, createdEpoch, path, metadata " +
                     "FROM messages " +
-                    "WHERE toAddress = @to AND pwd = @pwd AND deleted = 0";
+                    "WHERE toAddress = @to AND token = @token AND deleted = 0";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
                     cmd.Parameters.AddWithValue("@to", Utils.PrepEmailForLookup(to));
-                    cmd.Parameters.AddWithValue("@pwd", pwd);
+                    cmd.Parameters.AddWithValue("@token", token);
                     using (var reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
@@ -111,15 +109,15 @@ namespace msgfiles
                             msg =
                                 new msg()
                                 {
-                                    token = reader.GetString(0),
-                                    from = reader.GetString(1),
-                                    message = reader.GetString(2),
-                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(3))
+                                    token = token,
+                                    from = reader.GetString(0),
+                                    message = reader.GetString(1),
+                                    created = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(2))
                                 };
 
-                            path = reader.GetString(4);
+                            path = reader.GetString(3);
 
-                            var dict = Utils.GetMetadata(reader.GetString(5));
+                            var dict = Utils.GetMetadata(reader.GetString(4));
                             if (dict.ContainsKey("hash"))
                                 hash = dict["hash"];
                         }
@@ -133,16 +131,6 @@ namespace msgfiles
         {
             lock (this)
             {
-                string? file_path = null;
-                string select_sql = "SELECT path FROM messages WHERE token = @token";
-                using (var cmd = new SQLiteCommand(select_sql, m_db))
-                {
-                    cmd.Parameters.AddWithValue("@token", token);
-                    object result = cmd.ExecuteScalar();
-                    if (result != DBNull.Value)
-                        file_path = (string)result;
-                }
-
                 bool any_deleted = false;
                 string delete_sql = 
                     "UPDATE messages SET deleted = 1 " +
@@ -153,23 +141,6 @@ namespace msgfiles
                     cmd.Parameters.AddWithValue("@to", Utils.PrepEmailForLookup(to));
                     any_deleted = cmd.ExecuteNonQuery() > 0;
                 }
-
-                if (!string.IsNullOrEmpty(file_path))
-                {
-                    bool any_msgs_use_file = true;
-                    string count_remaining_sql =
-                        "SELECT COUNT(*) FROM messages WHERE path = @path AND deleted = 0";
-                    using (var cmd = new SQLiteCommand(count_remaining_sql, m_db))
-                    {
-                        cmd.Parameters.AddWithValue("@path", file_path);
-                        object result = cmd.ExecuteScalar();
-                        if (result == null || result == DBNull.Value || (long)result == 0)
-                            any_msgs_use_file = false;
-                    }
-                    if (!any_msgs_use_file && File.Exists(file_path))
-                        File.Delete(file_path);
-                }
-
                 return any_deleted;
             }
         }

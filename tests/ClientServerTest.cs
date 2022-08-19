@@ -80,9 +80,9 @@ namespace msgfiles
             await Task.FromResult(0);
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string pwd)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string token)
         {
-            Pwd = pwd;
+            Token = token;
             await Task.FromResult(0);
         }
 
@@ -115,7 +115,6 @@ namespace msgfiles
 
         public string Token = "";
         public string Message = "";
-        public string Pwd = "";
 
         private Session? m_session = null;
 
@@ -186,9 +185,8 @@ namespace msgfiles
                         Directory.Delete(client_app.ExtractionDirPath, true);
                     Directory.CreateDirectory(client_app.ExtractionDirPath);
 
-                    string token;
                     bool should_delete;
-                    Assert.IsTrue(client.GetMessage(server_app.Pwd, out token, out should_delete));
+                    Assert.IsTrue(client.GetMessage(server_app.Token, out should_delete));
 
                     Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
                     Assert.AreEqual(client_app.ConfirmedMessage, "message");
@@ -203,11 +201,11 @@ namespace msgfiles
                     Assert.AreEqual(1, test_dir_files.Length);
                     Assert.AreEqual(test_dir_file_contents, File.ReadAllText(test_dir_files[0]));
 
-                    Assert.IsTrue(client.DeleteMessage(token));
+                    Assert.IsTrue(client.DeleteMessage(server_app.Token));
 
                     try
                     {
-                        client.GetMessage(server_app.Pwd, out token, out should_delete);
+                        client.GetMessage(server_app.Token, out should_delete);
                         Assert.Fail();
                     }
                     catch (InputException) { }

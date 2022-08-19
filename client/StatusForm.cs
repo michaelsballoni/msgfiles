@@ -12,15 +12,15 @@ namespace msgfiles
             m_msg = msg;
         }
 
-        public StatusForm(string pwd)
+        public StatusForm(string token)
         {
             InitializeComponent();
             Text = "Message Files - Receiving Files";
-            m_pwd = pwd;
+            m_token = token;
         }
 
         private ClientMessage? m_msg;
-        private string? m_pwd;
+        private string? m_token;
 
         public bool Cancelled
         {
@@ -150,13 +150,11 @@ namespace msgfiles
 
                         if 
                         (
-                            !string.IsNullOrEmpty(m_pwd) 
+                            !string.IsNullOrEmpty(m_token) 
                             && 
                             !success 
                             && 
                             should_delete 
-                            && 
-                            !string.IsNullOrEmpty(token)
                         )
                         {
                             client.DeleteMessage(token);
@@ -176,11 +174,11 @@ namespace msgfiles
                                 MessageBox.Show($"Sending files failed!");
                             return;
                         }
-                        else if (m_pwd != null)
+                        else if (m_token != null)
                         {
-                            if (client.GetMessage(m_pwd, out token, out should_delete))
+                            if (client.GetMessage(m_token, out should_delete))
                             {
-                                client.DeleteMessage(token);
+                                client.DeleteMessage(m_token);
                                 MessageBox.Show("Files received!");
                                 success = true;
                                 Close();

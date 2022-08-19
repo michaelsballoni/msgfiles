@@ -122,7 +122,7 @@ namespace msgfiles
 
         public void Log(string msg)
         {
-            m_logStore.Log(msg);
+            m_logStore.Log(DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss") + " " +msg);
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
@@ -164,13 +164,13 @@ namespace msgfiles
             Console.WriteLine(token);
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string pwd)
+        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string token)
         {
             string email_message =
                 $"msgfiles from {from}:\r\n\r\n" +
                 $"{message}\r\n\r\n" +
                 $"Run the msgfiles application and paste this access token there:\r\n\r\n" +
-                $"{pwd}\r\n\r\n" +
+                $"{token}\r\n\r\n" +
                 $"Questions or comments?  Feel free to reply to this message!";
             await SendEmailAsync(from, toos, email_message).ConfigureAwait(false);
         }
