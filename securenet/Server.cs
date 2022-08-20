@@ -12,9 +12,9 @@ namespace msgfiles
             m_app = app;
             m_port = port;
 
-            m_cert = SecureNet.GenCert("msgfiles");
+            m_cert = SecureNet.GenCert();
 
-            m_listener = new TcpListener(IPAddress.Loopback, m_port);
+            m_listener = new TcpListener(IPAddress.Any, m_port);
         }
 
         public static int ReceiveTimeoutSeconds;

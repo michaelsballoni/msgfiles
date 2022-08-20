@@ -159,9 +159,6 @@ namespace msgfiles
                 $"{token}\r\n\r\n" +
                 $"Questions or comments?  Feel free to reply to this message!"
             );
-
-            Console.WriteLine("Token for " + email);
-            Console.WriteLine(token);
         }
 
         public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string token)

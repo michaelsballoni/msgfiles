@@ -160,7 +160,7 @@ namespace msgfiles
                 else if (exp is SocketException || exp is NetworkException)
                     MessageBox.Show($"Network error: {exp.Message}");
                 else
-                    MessageBox.Show($"Unexpected error: {exp.Message}");
+                    MessageBox.Show($"Unexpected error: {exp}");
             }
             finally
             {

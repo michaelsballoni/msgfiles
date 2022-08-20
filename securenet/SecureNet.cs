@@ -14,38 +14,44 @@ namespace msgfiles
 {
     public static class SecureNet
     {
-        public static int CertPrivateKeySizeBits = 4096;
-
         public static int MaxSendObjectBytes = 64 * 1024;
         public static int MaxReadObjectBytes = 64 * 1024;
 
-        public static X509Certificate GenCert(string hostname)
+        public static X509Certificate GenCert()
         {
-            using (RSA rsa = RSA.Create(CertPrivateKeySizeBits))
+            using (RSA rsa = RSA.Create(4096))
             {
-                var distinguishedName = new X500DistinguishedName($"CN={hostname}");
+                var distinguishedName = new X500DistinguishedName($"CN=msgfiles.io");
                 var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-                var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650)));
+                var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(3650));
                 return new X509Certificate2(certificate.Export(X509ContentType.Pfx, "password"), "password", X509KeyStorageFlags.MachineKeySet);
             }
         }
 
-        public static Stream SecureConnectionToServer(TcpClient client, string hostname)
+        public static Stream SecureConnectionToServer(TcpClient client)
         {
-            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert, X509Chain? chain, SslPolicyErrors errors) => true);
-            stream.AuthenticateAsClient(hostname);
-            if (!stream.IsAuthenticated)
+            var client_stream = client.GetStream();
+            var ssl_stream = 
+                new SslStream
+                (
+                    client_stream,
+                    false,
+                    (object obj, X509Certificate? cert, X509Chain? chain, SslPolicyErrors errors) => true
+                );
+            ssl_stream.AuthenticateAsClient("msgfiles.io");
+            if (!ssl_stream.IsAuthenticated)
                 throw new NetworkException("Connection to server not authenticated");
-            return stream;
+            return ssl_stream;
         }
 
         public async static Task<Stream> SecureConnectionFromClient(TcpClient client, X509Certificate cert)
         {
-            var stream = new SslStream(client.GetStream(), false, (object obj, X509Certificate? cert2, X509Chain? chain, SslPolicyErrors errors) => true);
-            await stream.AuthenticateAsServerAsync(cert, false, SslProtocols.Tls13, false).ConfigureAwait(false);
-            if (!stream.IsAuthenticated)
+            var client_stream = client.GetStream();
+            var ssl_stream = new SslStream(client_stream, false, (object obj, X509Certificate? cert2, X509Chain? chain, SslPolicyErrors errors) => true);
+            await ssl_stream.AuthenticateAsServerAsync(cert).ConfigureAwait(false);
+            if (!ssl_stream.IsAuthenticated)
                 throw new NetworkException("Connection from client not authenticated");
-            return stream;
+            return ssl_stream;
         }
 
         public static void SendObject<T>(Stream stream, T headers)

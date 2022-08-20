@@ -59,7 +59,7 @@ namespace msgfiles
                 return false;
 
             App.Log($"Securing connection...");
-            ServerStream = SecureNet.SecureConnectionToServer(m_client, serverHostname);
+            ServerStream = SecureNet.SecureConnectionToServer(m_client);
             if (App.Cancelled)
                 return false;
 

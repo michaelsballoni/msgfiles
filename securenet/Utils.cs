@@ -14,12 +14,16 @@ namespace msgfiles
     {
         public static string GenChallenge()
         {
-            return GenToken().Substring(0, 6).ToUpper();
+            var str = Guid.NewGuid().ToString();
+            var token = Encoding.UTF8.GetBytes(str);
+            return BytesToHex(token).Substring(0, 6).ToUpper();
         }
 
         public static string GenToken()
         {
-            return Utils.HashString(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);
+            var str = Guid.NewGuid().ToString();
+            var token = Encoding.UTF8.GetBytes(str);
+            return Convert.ToBase64String(token).Trim('=');
         }
 
         public static string HashString(string str)
@@ -199,7 +203,8 @@ namespace msgfiles
                             app.Log(lastZipCurrentFilename);
                         }
 
-                        app.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
+                        if (e.TotalBytesToTransfer > 0)
+                            app.Progress((double)e.BytesTransferred / e.TotalBytesToTransfer);
                     };
                 foreach (var path in paths)
                 {
@@ -268,16 +273,17 @@ namespace msgfiles
             {
                 string lastZipCurrentFilename = "";
                 zip.ExtractProgress +=
-                (object? sender, Ionic.Zip.ExtractProgressEventArgs e) =>
-                {
-                    if (e.CurrentEntry != null && e.CurrentEntry.FileName != lastZipCurrentFilename)
+                    (object? sender, Ionic.Zip.ExtractProgressEventArgs e) =>
                     {
-                        lastZipCurrentFilename = e.CurrentEntry.FileName;
-                        app.Log(lastZipCurrentFilename);
-                    }
+                        if (e.CurrentEntry != null && e.CurrentEntry.FileName != lastZipCurrentFilename)
+                        {
+                            lastZipCurrentFilename = e.CurrentEntry.FileName;
+                            app.Log(lastZipCurrentFilename);
+                        }
 
-                    app.Progress((double)e.BytesTransferred / Math.Max(e.TotalBytesToTransfer, 1));
-                };
+                        if (e.TotalBytesToTransfer > 0)
+                            app.Progress((double)e.BytesTransferred / e.TotalBytesToTransfer);
+                    };
                 zip.ExtractAll(extractionDirPath);
             }
         }
