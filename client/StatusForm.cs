@@ -98,7 +98,6 @@ namespace msgfiles
             int seconds_between_retries = 3;
 
             bool success = false;
-            string token = "";
             bool should_delete = false;
             while (!Cancelled)
             {
@@ -137,7 +136,6 @@ namespace msgfiles
                             }
                             catch (Exception exp)
                             {
-                                exp = Utils.SmashExp(exp);
                                 if (exp is SocketException || exp is NetworkException)
                                 {
                                     Log("Authentication failed due to a network error, will retry");
@@ -150,18 +148,18 @@ namespace msgfiles
 
                         if 
                         (
-                            !string.IsNullOrEmpty(m_token) 
+                            !string.IsNullOrEmpty(m_token) // receive
                             && 
                             !success 
                             && 
                             should_delete 
                         )
                         {
-                            client.DeleteMessage(token);
+                            client.DeleteMessage(m_token);
                             Close();
                             return;
                         }
-
+                        
                         if (m_msg != null)
                         {
                             if (client.SendMsg(m_msg.To, m_msg.Message, m_msg.Paths))
@@ -198,7 +196,7 @@ namespace msgfiles
                             else if (should_delete)
                                 MessageBox.Show("Receiving files failed!");
 
-                            if (string.IsNullOrEmpty(token) || !should_delete)
+                            if (!should_delete)
                                 return;
                         }
                         else
@@ -207,8 +205,6 @@ namespace msgfiles
                 }
                 catch (Exception exp)
                 {
-                    exp = Utils.SmashExp(exp);
-
                     if (exp is SocketException || exp is NetworkException)
                     {
                         Log("The operation failed due to a network error, will retry...");

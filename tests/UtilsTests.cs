@@ -22,7 +22,7 @@ namespace msgfiles
             Assert.IsTrue(!string.IsNullOrWhiteSpace(hash));
 
             Assert.AreEqual(6, Utils.GenChallenge().Length);
-            Assert.AreEqual(64, Utils.GenToken().Length);
+            Assert.AreEqual(48, Utils.GenToken().Length);
 
             var dict = new Dictionary<string, string>() { { "foo", "bar" }, { "blet", " monkey " } };
             Utils.NormalizeDict(dict, new[] { "something", "foo", "blet" });
