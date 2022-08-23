@@ -33,6 +33,7 @@ namespace msgfiles
         public void Log(string msg)
         {
             LogOutputTextBox.AppendText(msg + "\r\n");
+            Progress(0.0);
             Application.DoEvents();
         }
         public void Progress(double progress)
@@ -138,8 +139,13 @@ namespace msgfiles
                             {
                                 if (exp is SocketException || exp is NetworkException)
                                 {
-                                    Log("Authentication failed due to a network error, will retry");
-                                    Thread.Sleep(seconds_between_retries * 1000);
+                                    Log("Authentication failed due to a network error, will retry...");
+                                    for (int t = 1; t <= seconds_between_retries * 10; ++t)
+                                    {
+                                        Thread.Sleep(100);
+                                        if (Cancelled)
+                                            break;
+                                    }
                                 }
                                 else
                                     throw;
@@ -208,7 +214,12 @@ namespace msgfiles
                     if (exp is SocketException || exp is NetworkException)
                     {
                         Log("The operation failed due to a network error, will retry...");
-                        Thread.Sleep(seconds_between_retries * 1000);
+                        for (int t = 1; t <= seconds_between_retries * 10; ++t)
+                        {
+                            Thread.Sleep(100);
+                            if (Cancelled)
+                                break;
+                        }
                     }
                     else if (exp is InputException)
                     {

@@ -1,19 +1,78 @@
 ﻿using System.Diagnostics;
 using msgfiles;
 
+string docs_dir = ServerApp.AppDocsDirPath;
+
+string settings_file_path = Path.Combine(docs_dir, "settings.ini");
+if (!File.Exists(settings_file_path))
+{
+    Console.WriteLine("settings.ini does not exist");
+    string settings_template_file_path = Path.Combine(docs_dir, "settings.template.ini");
+    if (!File.Exists(settings_template_file_path))
+    {
+        Console.WriteLine("settings.template.ini does not exist; must exit");
+        return 1;
+    }
+
+    Console.WriteLine("Copying settings.template.ini to settings.ini...");
+    File.Copy(settings_template_file_path, settings_file_path);
+
+    Console.WriteLine("Hit [Enter] to open settings.ini to fill it in");
+    Console.ReadLine();
+    var editor = OpenFile(settings_file_path);
+    if (editor == null)
+    {
+        Console.WriteLine("Opening settings.ini file failed; must exit");
+        return 1;
+    }
+    editor.WaitForExit();
+}
+
+Console.WriteLine("Starting up...");
+
+ServerApp? server_app = null;
+while (true)
+{
+    try
+    {
+        server_app = new ServerApp();
+        break;
+    }
+    catch (Exception exp)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"Startup ERROR: {Utils.SumExp(exp)}");
+
+        if (server_app != null)
+        {
+            try
+            {
+                server_app.Dispose();
+            }
+            catch { }
+        }
+
+        Console.WriteLine("Hit [Enter] to open settings.ini to improve things");
+        Console.ReadLine();
+        var editor = OpenFile(settings_file_path);
+        if (editor == null)
+        {
+            Console.WriteLine("Opening settings.ini file failed; must exit");
+            return 1;
+        }
+        editor.WaitForExit();
+    }
+}
+
 try
 {
-    Console.WriteLine("Starting up...");
-    var server_app = new ServerApp();
-
-    var server = new Server(server_app, server_app.ServerPort);
+    Server server = new Server(server_app, server_app.ServerPort);
 
     var accepter_thread = new Thread(AcceptThread);
     accepter_thread.Start(server);
 
     Console.WriteLine("Up and running!");
 
-    string docs_dir = server_app.AppDocsDirPath;
     while (true)
     {
         try
@@ -66,7 +125,7 @@ try
                         server_app.Dispose();
 
                         Console.WriteLine("All done.");
-                        return;
+                        return 0;
                     }
 
                 default:
@@ -84,11 +143,13 @@ catch (InputException exp)
 {
     Console.WriteLine();
     Console.WriteLine($"ERROR: {exp.Message}");
+    return 1;
 }
 catch (Exception exp)
 {
     Console.WriteLine();
     Console.WriteLine($"Unhandled EXCEPTION: {exp}");
+    return 1;
 }
 
 void AcceptThread(object? serverObj)
@@ -116,7 +177,7 @@ void ShowFolder(string dirPath)
     Process.Start(si);
 }
 
-void OpenFile(string filePath)
+Process? OpenFile(string filePath)
 {
     if (!File.Exists(filePath))
     {
@@ -130,5 +191,5 @@ void OpenFile(string filePath)
     si.FileName = filePath;
     si.UseShellExecute = true;
     si.Verb = "open";
-    Process.Start(si);
+    return Process.Start(si);
 }

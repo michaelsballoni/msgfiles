@@ -149,6 +149,8 @@ namespace msgfiles
                                 return false;
 
                             read_yet += read;
+
+                            App.Progress((double)read_yet / total_to_read);
                         }
                     }
 

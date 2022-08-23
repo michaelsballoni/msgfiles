@@ -14,9 +14,7 @@ namespace msgfiles
     {
         public static string GenChallenge()
         {
-            var str = Guid.NewGuid().ToString();
-            var token = Encoding.UTF8.GetBytes(str);
-            return BytesToHex(token).Substring(0, 6).ToUpper();
+            return HashString(Guid.NewGuid().ToString()).Substring(0, 6).ToUpper();
         }
 
         public static string GenToken()

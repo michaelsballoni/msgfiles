@@ -7,18 +7,9 @@ namespace msgfiles
     {
         public ServerApp()
         {
-            m_docsDirPath =
-                Path.Combine
-                (
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    "msgfiles-server"
-                );
-            if (!Directory.Exists(m_docsDirPath))
-                Directory.CreateDirectory(m_docsDirPath);
-
-            string settings_file_path = Path.Combine(m_docsDirPath, "settings.ini");
+            string settings_file_path = Path.Combine(AppDocsDirPath, "settings.ini");
             if (!File.Exists(settings_file_path))
-                throw new InputException($"Startup Error: settings.ini file does not exist in {m_docsDirPath}");
+                throw new InputException($"settings.ini file does not exist in {AppDocsDirPath}");
             
             m_settings = new Settings(settings_file_path);
 
@@ -28,7 +19,7 @@ namespace msgfiles
                 out MsgRequestHandler.MaxSendPayloadMB
             ))
             {
-                throw new InputException("Startup Error: Invalid settings.ini: MaxSendPayloadMB");
+                throw new InputException("Invalid setting: MaxSendPayloadMB");
             }
 
             if (!int.TryParse
@@ -37,7 +28,7 @@ namespace msgfiles
                 out Server.ReceiveTimeoutSeconds
             ))
             {
-                throw new InputException("Startup Error: Invalid settings.ini: ReceiveTimeoutSeconds");
+                throw new InputException("Invalid setting: ReceiveTimeoutSeconds");
             }
 
             if (!int.TryParse
@@ -46,34 +37,48 @@ namespace msgfiles
                 out ServerPort
             ))
             {
-                throw new InputException("Startup Error: Invalid settings.ini: ServerPort");
+                throw new InputException("Invalid setting: ServerPort");
             }
 
-            m_settingsWatcher = new FileSystemWatcher(m_docsDirPath, "*.ini");
+            m_settingsWatcher = new FileSystemWatcher(AppDocsDirPath, "*.ini");
             m_settingsWatcher.Changed += SettingsWatcher_Changed;
             m_settingsWatcher.Created += SettingsWatcher_Changed;
             m_settingsWatcher.Deleted += SettingsWatcher_Changed;
             SettingsWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
-            m_txtFilesWatcher = new FileSystemWatcher(m_docsDirPath, "*.txt");
+            m_txtFilesWatcher = new FileSystemWatcher(AppDocsDirPath, "*.txt");
             m_txtFilesWatcher.Changed += TextWatcher_Changed;
             m_txtFilesWatcher.Created += TextWatcher_Changed;
             m_txtFilesWatcher.Deleted += TextWatcher_Changed;
             TextWatcher_Changed(new object(), new FileSystemEventArgs(WatcherChangeTypes.All, "", null));
 
-            m_sessions = new SessionStore(Path.Combine(m_docsDirPath, "sessions.db"));
+            m_sessions = new SessionStore(Path.Combine(AppDocsDirPath, "sessions.db"));
 
-            m_messageStore = new MessageStore(Path.Combine(m_docsDirPath, "messages.db"));
+            m_messageStore = new MessageStore(Path.Combine(AppDocsDirPath, "messages.db"));
 
             m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
 
-            m_logStore = new LogStore(Path.Combine(m_docsDirPath, "logs"));
+            m_logStore = new LogStore(Path.Combine(AppDocsDirPath, "logs"));
+
+            string mail_server = m_settings.Get("application", "MailServer");
+            if (string.IsNullOrWhiteSpace(mail_server))
+                throw new InputException("Invalid setting: MailServer");
+
+            int mail_port;
+            if (!int.TryParse
+            (
+                m_settings.Get("application", "MailPort"),
+                out mail_port
+            ))
+            {
+                throw new InputException("Invalid setting: MailPort");
+            }
 
             m_emailClient =
                 new EmailClient
                 (
-                    m_settings.Get("application", "MailServer"),
-                    int.Parse(m_settings.Get("application", "MailPort")),
+                    mail_server,
+                    mail_port,
                     m_settings.Get("application", "MailUsername"),
                     m_settings.Get("application", "MailPassword")
                 );
@@ -99,8 +104,23 @@ namespace msgfiles
             m_logStore.Dispose();
         }
 
+        public static string AppDocsDirPath
+        {
+            get
+            {
+                string path =
+                Path.Combine
+                    (
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "msgfiles-server"
+                    );
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                return path;
+            }
+        }
+
         public int ServerPort;
-        public string AppDocsDirPath => m_docsDirPath;
         public string FileStoreDirPath => m_fileStore == null ? "" : m_fileStore.DirPath;
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
@@ -196,7 +216,7 @@ namespace msgfiles
 
         private HashSet<string> LoadFileList(string fileName)
         {
-            string file_path = Path.Combine(m_docsDirPath, fileName);
+            string file_path = Path.Combine(AppDocsDirPath, fileName);
             if (File.Exists(file_path))
             {
                 return
@@ -231,7 +251,6 @@ namespace msgfiles
         private Settings m_settings;
         private AllowBlock m_allowBlock = new AllowBlock();
 
-        private string m_docsDirPath;
         private FileSystemWatcher m_settingsWatcher;
         private FileSystemWatcher m_txtFilesWatcher;
 
