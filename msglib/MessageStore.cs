@@ -3,42 +3,49 @@ using Newtonsoft.Json;
 
 namespace msgfiles
 {
+    /// <summary>
+    /// MessageStore manages the set of messages, to deliver, and delivered
+    /// </summary>
     public class MessageStore : IDisposable
     {
         public MessageStore(string dbFilePath)
         {
-            bool file_existed = File.Exists(dbFilePath);
+            if (!File.Exists(dbFilePath))
+            {
+                using (var db = new SQLiteConnection($"Data Source={dbFilePath}"))
+                {
+                    db.Open();
+
+                    using (var cmd = new SQLiteCommand("PRAGMA journal_mode = WAL", db))
+                        cmd.ExecuteNonQuery();
+                    using (var cmd = new SQLiteCommand("PRAGMA synchronous = NORMAL", db))
+                        cmd.ExecuteNonQuery();
+
+                    string table_sql =
+                        "CREATE TABLE messages " +
+                        "(token STRING CONSTRAINT message_key PRIMARY KEY, " +
+                        "fromAddress STRING NOT NULL, " +
+                        "toAddress STRING NOT NULL, " +
+                        "message STRING NOT NULL, " +
+                        "path STRING NOT NULL, " +
+                        "createdEpoch INTEGER NOT NULL, " +
+                        "deleted INTEGER NOT NULL, " +
+                        "metadata STRING NOT NULL)";
+                    using (var cmd = new SQLiteCommand(table_sql, db))
+                        cmd.ExecuteNonQuery();
+
+                    string to_index_sql = "CREATE INDEX message_to_idx ON messages (toAddress)";
+                    using (var cmd = new SQLiteCommand(to_index_sql, db))
+                        cmd.ExecuteNonQuery();
+
+                    string created_index_sql = "CREATE INDEX message_created_idx ON messages (createdEpoch)";
+                    using (var cmd = new SQLiteCommand(created_index_sql, db))
+                        cmd.ExecuteNonQuery();
+                }
+            }
 
             m_db = new SQLiteConnection($"Data Source={dbFilePath}");
             m_db.Open();
-
-            if (!file_existed)
-            {
-                string table_sql =
-                    "CREATE TABLE messages " +
-                    "(token STRING CONSTRAINT message_key PRIMARY KEY, " + 
-                    "fromAddress STRING NOT NULL, " +
-                    "toAddress STRING NOT NULL, " +
-                    "message STRING NOT NULL, " +
-                    "path STRING NOT NULL, " +
-                    "createdEpoch INTEGER NOT NULL, " +
-                    "deleted INTEGER NOT NULL, " +
-                    "metadata STRING NOT NULL)";
-                using (var cmd = new SQLiteCommand(table_sql, m_db))
-                    cmd.ExecuteNonQuery();
-
-                string to_index_sql = "CREATE INDEX message_to_idx ON messages (toAddress)";
-                using (var cmd = new SQLiteCommand(to_index_sql, m_db))
-                    cmd.ExecuteNonQuery();
-
-                string created_index_sql = "CREATE INDEX message_created_idx ON messages (createdEpoch)";
-                using (var cmd = new SQLiteCommand(created_index_sql, m_db))
-                    cmd.ExecuteNonQuery();
-
-                string path_index_sql = "CREATE INDEX message_path_idx ON messages (path)";
-                using (var cmd = new SQLiteCommand(path_index_sql, m_db))
-                    cmd.ExecuteNonQuery();
-            }
         }
 
         public void Dispose()
@@ -53,6 +60,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Store a message given the path to the payload file, 
+        /// and the file's hash
+        /// </summary>
         public string StoreMessage(msg msg, string path, string hash)
         {
             lock (this)
@@ -86,6 +97,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Given a To: address and a message token, get the message
+        /// and the path to the message's payload and the payload's hash
+        /// </summary>
         public msg? GetMessage(string to, string token, out string path, out string hash)
         {
             path = "";
@@ -127,6 +142,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Delete a message given its token and who it's To;
+        /// </summary>
         public bool DeleteMessage(string token, string to)
         {
             lock (this)
@@ -145,6 +163,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Prune old messages
+        /// In seconds for unit tests
+        /// </summary>
         public int DeleteOldMessages(int maxAgeSeconds)
         {
             var old_token_toos = new Dictionary<string, string>();

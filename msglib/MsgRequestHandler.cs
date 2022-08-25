@@ -2,6 +2,9 @@
 
 namespace msgfiles
 {
+    /// <summary>
+    /// MsgRequestHandler implements all the message request handling
+    /// </summary>
     public class MsgRequestHandler : IServerRequestHandler
     {
         public static int MaxSendPayloadMB;
@@ -123,7 +126,7 @@ namespace msgfiles
                             );
 
                             Log(ctxt, $"Sending email");
-                            await ctxt.App.SendMailDeliveryMessageAsync
+                            ctxt.App.SendDeliveryMessage
                             (
                                 email_from,
                                 too,
@@ -133,7 +136,13 @@ namespace msgfiles
                     }
                     stored_file_path = "";
 
-                    return HandlerContext.StandardResponse;
+                    return
+                        new ServerResponse()
+                        {
+                            version = 1,
+                            statusCode = 200,
+                            statusMessage = "OK"
+                        };
                 }
                 finally
                 {

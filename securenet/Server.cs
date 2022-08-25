@@ -2,9 +2,14 @@
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
-
 namespace msgfiles
 {
+    /// <summary>
+    /// General purpose secure socket server
+    /// This class manages listening for connections
+    /// and maintaining a registry of connections
+    /// ServerClient does the work of handling connections
+    /// </summary>
     public class Server : IDisposable
     {
         public Server(IServerApp app, int port)

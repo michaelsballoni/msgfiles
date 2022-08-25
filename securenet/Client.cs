@@ -2,8 +2,12 @@
 
 namespace msgfiles
 {
+    /// <summary>
+    /// Base class of MsgClient, handles user authentication
+    /// </summary>
     public class Client : IDisposable
     {
+        // A little dependency injection
         public Client(IClientApp app)
         {
             App = app;
@@ -50,19 +54,23 @@ namespace msgfiles
                 string email
             )
         {
+            // Start fresh
             Disconnect();
 
+            // Make TCP connection
             App.Log($"Connecting {serverHostname} : {serverPort}...");
             m_client = new TcpClient(serverHostname, serverPort);
-            m_client.NoDelay = true;
+            m_client.NoDelay = true; // requests should be sent out ASAP
             if (App.Cancelled)
                 return false;
 
+            // Do the SslStream thing
             App.Log($"Securing connection...");
             ServerStream = SecureNet.SecureConnectionToServer(m_client);
             if (App.Cancelled)
                 return false;
 
+            // Send in our AUTH request with the info we have on hand
             App.Log($"Starting authentication...");
             var auth_request =
                 new ClientRequest()
@@ -81,6 +89,7 @@ namespace msgfiles
             if (App.Cancelled)
                 return false;
 
+            // Get the response, either session token, challenge required, or fail
             var auth_response = SecureNet.ReadObject<ServerResponse>(ServerStream);
             App.Log($"Server Response: {auth_response.ResponseSummary}");
             switch (auth_response.statusCode)
@@ -95,8 +104,13 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Given the challenge token provided by the user
+        /// try to continue the authentication
+        /// </summary>
         public void ContinueConnect(string challengeToken)
         {
+            // Send special CHALLENGE request with the token
             App.Log("Sending challenge response...");
             var auth_submit =
                 new ClientRequest()
@@ -109,6 +123,7 @@ namespace msgfiles
                 throw new NetworkException("Not connected");
             SecureNet.SendObject(ServerStream, auth_submit);
 
+            // Receive the response, either success with session or fail
             var auth_response = SecureNet.ReadObject<ServerResponse>(ServerStream);
             App.Log($"Server Response: {auth_response.ResponseSummary}");
             switch (auth_response.statusCode)

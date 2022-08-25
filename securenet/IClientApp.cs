@@ -1,5 +1,8 @@
 ﻿namespace msgfiles
 {
+    /// <summary>
+    /// Interface for client applications to prove pacification and user prompts
+    /// </summary>
     public interface IClientApp
     {
         bool Cancelled { get; }

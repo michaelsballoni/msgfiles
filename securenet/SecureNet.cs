@@ -2,7 +2,6 @@
 using System.Net.Security;
 using System.Net.Sockets;
 
-using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -14,9 +13,11 @@ namespace msgfiles
 {
     public static class SecureNet
     {
-        public static int MaxSendObjectBytes = 64 * 1024;
-        public static int MaxReadObjectBytes = 64 * 1024;
+        public static int MaxObjectByteCount = 64 * 1024;
 
+        /// <summary>
+        /// Create a self-signed cert...in six lines of code
+        /// </summary>
         public static X509Certificate GenCert()
         {
             using (RSA rsa = RSA.Create(4096))
@@ -28,6 +29,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Given a client TCP connection, secure communications with the server
+        /// </summary>
         public static Stream SecureConnectionToServer(TcpClient client)
         {
             var client_stream = client.GetStream();
@@ -44,6 +48,9 @@ namespace msgfiles
             return ssl_stream;
         }
 
+        /// <summary>
+        /// Given a server TCP connection, secure communications with the client
+        /// </summary>
         public async static Task<Stream> SecureConnectionFromClient(TcpClient client, X509Certificate cert)
         {
             var client_stream = client.GetStream();
@@ -54,12 +61,20 @@ namespace msgfiles
             return ssl_stream;
         }
 
+        /// <summary>
+        /// Given pretty much anything, 
+        /// turn it into JSON,
+        /// get the UTF-8 bytes,
+        /// compress the bytes,
+        /// make sure it isn't too big,
+        /// then send it over the stream, length-prefixed
+        /// </summary>
         public static void SendObject<T>(Stream stream, T headers)
         {
             string json = JsonConvert.SerializeObject(headers);
 
             byte[] json_bytes = Utils.Compress(Encoding.UTF8.GetBytes(json));
-            if (json_bytes.Length > MaxSendObjectBytes)
+            if (json_bytes.Length > MaxObjectByteCount)
                 throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
@@ -68,12 +83,15 @@ namespace msgfiles
                 stream.Write(buffer.GetBuffer(), 0, (int)buffer.Length);
         }
 
+        /// <summary>
+        /// See SendObject
+        /// </summary>
         public static async Task SendObjectAsync<T>(Stream stream, T headers)
         {
             string json = JsonConvert.SerializeObject(headers);
 
             byte[] json_bytes = Utils.Compress(Encoding.UTF8.GetBytes(json));
-            if (json_bytes.Length > MaxSendObjectBytes)
+            if (json_bytes.Length > MaxObjectByteCount)
                 throw new InputException("Too much to send");
 
             byte[] num_bytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(json_bytes.Length));
@@ -82,6 +100,12 @@ namespace msgfiles
                 await stream.WriteAsync(buffer.GetBuffer(), 0, (int)buffer.Length).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Receive pretty much anything from a stream
+        /// Read the length, ensure it's not too much
+        /// Read the bytes, decompress, turn into a string, JSON parse,
+        /// and out comes an object
+        /// </summary>
         public static T ReadObject<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
@@ -89,7 +113,7 @@ namespace msgfiles
                 throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
-            if (bytes_length > MaxReadObjectBytes)
+            if (bytes_length > MaxObjectByteCount)
                 throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];
@@ -112,6 +136,9 @@ namespace msgfiles
                 return obj;
         }
 
+        /// <summary>
+        /// See ReadObject
+        /// </summary>
         public static async Task<T> ReadObjectAsync<T>(Stream stream)
         {
             byte[] num_bytes = new byte[4];
@@ -119,7 +146,7 @@ namespace msgfiles
                 throw new SocketException();
 
             int bytes_length = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(num_bytes, 0));
-            if (bytes_length > MaxReadObjectBytes)
+            if (bytes_length > MaxObjectByteCount)
                 throw new InputException("Too much to read");
 
             byte[] header_bytes = new byte[bytes_length];

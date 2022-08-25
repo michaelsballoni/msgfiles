@@ -1,5 +1,8 @@
 ﻿namespace msgfiles
 {
+    /// <summary>
+    /// Manage log file storage
+    /// </summary>
     public class LogStore : IDisposable
     {
         public LogStore(string dirPath, int logPathCheckSkipCount = 100)
@@ -8,7 +11,6 @@
                 Directory.CreateDirectory(dirPath);
 
             m_dirPath = dirPath;
-            m_logPathCheckSkipCount = logPathCheckSkipCount;
         }
 
         public void Dispose()
@@ -20,33 +22,35 @@
             }
         }
 
+        /// <summary>
+        /// Write a message to a log file, 
+        /// ensuring the log file has the right timestamp
+        /// </summary>
         public void Log(string msg)
         {
-            if
-            (
-                (
-                    (++m_logPathCheckCounter % m_logPathCheckSkipCount) == 0 
-                    && 
-                    m_curOpenFilePath != LogPath
-                ) 
-                || 
-                m_curOpenFile == null
-            )
+            if (m_curOpenFileStamp != LogFileStamp)
             {
                 if (m_curOpenFile != null)
                 {
                     m_curOpenFile.Dispose();
                     m_curOpenFile = null;
                 }
-                m_curOpenFilePath = LogPath;
-                m_curOpenFile = new StreamWriter(m_curOpenFilePath, append: true);
+
+                m_curOpenFile = new StreamWriter(LogPath, append: true);
                 m_curOpenFile.AutoFlush = true;
+                m_curOpenFileStamp = LogFileStamp;
             }
 
-            m_curOpenFile.WriteLine(msg);
+            if (m_curOpenFile == null)
+                throw new NullReferenceException("m_curOpenFile");
+            else
+                m_curOpenFile.WriteLine(msg);
         }
 
-        public int DeleteOldLogs(int maxAgeSeconds)
+        /// <summary>
+        /// Prune the directory of log files
+        /// </summary>
+        public int DeleteOldLogs(int maxAgeSeconds) // in seconds for unit tests
         {
             int files_deleted = 0;
 
@@ -84,17 +88,11 @@
             return files_deleted;
         }
 
-        private string LogPath =>
-            Path.Combine
-            (
-                m_dirPath, 
-                DateTime.UtcNow.ToString("yyyy-MM-dd") + ".log"
-            );
+        private string LogPath => Path.Combine(m_dirPath, LogFileStamp + ".log");
+        private string LogFileStamp => DateTime.UtcNow.ToString("yyyy-MM-dd");
 
-        private string m_curOpenFilePath = "";
+        private string m_curOpenFileStamp = "";
         private StreamWriter? m_curOpenFile;
-        private long m_logPathCheckCounter = 0;
-        private int m_logPathCheckSkipCount;
 
         private string m_dirPath;
     }

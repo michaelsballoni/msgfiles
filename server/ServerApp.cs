@@ -1,8 +1,13 @@
-﻿using System.Diagnostics;
-using System.Threading;
-
-namespace msgfiles
+﻿namespace msgfiles
 {
+    /// <summary>
+    /// ServerApp implements to server functionality by
+    /// satisfying the requirements of IServerApp for logging,
+    /// sessions, email sending, and request processing
+    /// It dynamically reloads settings and allow/block lists
+    /// It performs maintenance to prune sessions, messages,
+    /// files, and logs
+    /// </summary>
     internal class ServerApp : IServerApp, IDisposable
     {
         public ServerApp()
@@ -88,13 +93,13 @@ namespace msgfiles
             var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
             var to_dict = new Dictionary<string, string>();
             to_dict.Add(to_kvp.Key, to_kvp.Value);
-            m_emailClient.SendEmailAsync
+            m_emailClient.SendEmail
             (
                 m_settings.Get("application", "MailFromAddress"),
                 to_dict,
                 "Server Started Up",
                 "So far so good..."
-            ).Wait();
+            );
         }
 
         public void Dispose()
@@ -104,6 +109,9 @@ namespace msgfiles
             m_logStore.Dispose();
         }
 
+        /// <summary>
+        /// What directory contains the server's various setting files?
+        /// </summary>
         public static string AppDocsDirPath
         {
             get
@@ -121,7 +129,8 @@ namespace msgfiles
         }
 
         public int ServerPort;
-        public string FileStoreDirPath => m_fileStore == null ? "" : m_fileStore.DirPath;
+        public string FileStoreDirPath => 
+            m_fileStore == null ? "" : m_fileStore.DirPath;
 
         private void SettingsWatcher_Changed(object sender, FileSystemEventArgs e)
         {
@@ -137,12 +146,15 @@ namespace msgfiles
             );
         }
 
+        /// <summary>
+        /// Hand out a new request handler, supplying what it needs from this
+        /// </summary>
         public IServerRequestHandler RequestHandler =>
             new MsgRequestHandler(m_allowBlock, m_fileStore, m_messageStore);
 
         public void Log(string msg)
         {
-            m_logStore.Log(DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss") + " " +msg);
+            m_logStore.Log(DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss") + " " + msg);
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
@@ -166,11 +178,15 @@ namespace msgfiles
             return m_fileStore.StoreFile(filePath);
         }
 
-        public async Task SendChallengeTokenAsync(string email, string display, string token)
+        /// <summary>
+        /// Send the user the challenge token to verify they have access 
+        /// to the email
+        /// </summary>
+        public void SendChallengeToken(string email, string display, string token)
         {
             m_allowBlock.EnsureEmailAllowed(email);
 
-            await m_emailClient.SendEmailAsync
+            m_emailClient.SendEmail
             (
                 m_settings.Get("application", "MailFromAddress"),
                 new Dictionary<string, string>() { { email , display } },
@@ -181,7 +197,7 @@ namespace msgfiles
             );
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string token)
+        public void SendDeliveryMessage(string from, string toos, string message, string token)
         {
             string email_message =
                 $"msgfiles from {from}:\r\n\r\n" +
@@ -189,23 +205,36 @@ namespace msgfiles
                 $"Run the msgfiles application and paste this access token there:\r\n\r\n" +
                 $"{token}\r\n\r\n" +
                 $"Questions or comments?  Feel free to reply to this message!";
-            await SendEmailAsync(from, toos, email_message).ConfigureAwait(false);
+            SendEmail(from, toos, email_message);
         }
 
-        public async Task SendEmailAsync(string from, string toos, string message)
+        /// <summary>
+        /// Core email sending function
+        /// </summary>
+        /// <param name="from">Full email address to say the message is from</param>
+        /// <param name="toos">List of full email addresses to send to</param>
+        /// <param name="message">Body of the message to send</param>
+        public void SendEmail(string from, string toos, string message)
         {
             var from_kvp = Utils.ParseEmail(from);
             m_allowBlock.EnsureEmailAllowed(from_kvp.Key);
 
             var toos_dict = new Dictionary<string, string>();
-            foreach (string to in toos.Split(';').Select(t => t.Trim()).Where(t => t.Length > 0))
+            foreach
+            (
+                var to_kvp in 
+                    toos
+                    .Split(';')
+                    .Select(t => t.Trim())
+                    .Where(t => t.Length > 0)
+                    .Select(to => Utils.ParseEmail(to))
+            )
             {
-                var to_kvp = Utils.ParseEmail(to);
                 m_allowBlock.EnsureEmailAllowed(to_kvp.Key);
                 toos_dict.Add(to_kvp.Key, to_kvp.Value);
             }
 
-            await m_emailClient.SendEmailAsync
+            m_emailClient.SendEmail
             (
                 m_settings.Get("application", "MailFromAddress"),
                 toos_dict,
@@ -214,6 +243,9 @@ namespace msgfiles
             );
         }
 
+        /// <summary>
+        /// Load a text file's lines into a lookup list
+        /// </summary>
         private HashSet<string> LoadFileList(string fileName)
         {
             string file_path = Path.Combine(AppDocsDirPath, fileName);
@@ -224,13 +256,16 @@ namespace msgfiles
                     (
                         File.ReadAllLines(file_path)
                         .Select(e => e.Trim().ToLower())
-                        .Where(e => e.Length > 0)
+                        .Where(e => e.Length > 0 && e[0] != '#')
                     );
             }
             else
                 return new HashSet<string>();
         }
 
+        /// <summary>
+        /// Prune sessions, messages, files, and logs
+        /// </summary>
         private void MaintenanceTimer(object? state)
         {
             int age_off_days;

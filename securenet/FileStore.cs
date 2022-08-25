@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace msgfiles
+﻿namespace msgfiles
 {
+    /// <summary>
+    /// Basic files-in-a-directory storage manager
+    /// </summary>
     public class FileStore
     {
         public FileStore(string dirPath)
@@ -13,19 +10,25 @@ namespace msgfiles
             if (!Directory.Exists(dirPath))
                 Directory.CreateDirectory(dirPath);
 
-            m_dirPath = dirPath;
+            DirPath = dirPath;
         }
 
-        public string DirPath => m_dirPath;
+        public string DirPath { get; private set; }
 
+        /// <summary>
+        /// Add a file to the storage system
+        /// </summary>
         public string StoreFile(string filePath)
         {
-            string new_filename = $"{Guid.NewGuid()}.dat";
-            string new_path = Path.Combine(m_dirPath, new_filename);
+            string new_path = Path.Combine(DirPath, $"{Guid.NewGuid()}.dat");
             File.Copy(filePath, new_path);
             return new_path;
         }
 
+        /// <summary>
+        /// Prune old files
+        /// Use seconds for unit tests, 86,400 for days
+        /// </summary>
         public int DeleteOldFiles(int maxAgeSeconds)
         {
             int files_deleted = 0;
@@ -33,7 +36,7 @@ namespace msgfiles
             DateTime oldest_date = DateTime.UtcNow - new TimeSpan(0, 0, maxAgeSeconds);
 
             var file_paths_to_delete = new List<string>();
-            foreach (var file_path in Directory.GetFiles(m_dirPath))
+            foreach (var file_path in Directory.GetFiles(DirPath))
             {
                 try
                 {
@@ -63,7 +66,5 @@ namespace msgfiles
 
             return files_deleted;
         }
-
-        private string m_dirPath;
     }
 }

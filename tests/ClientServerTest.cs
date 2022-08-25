@@ -74,16 +74,14 @@ namespace msgfiles
             Console.WriteLine(message);
         }
 
-        public async Task SendChallengeTokenAsync(string email, string display, string token)
+        public void SendChallengeToken(string email, string display, string token)
         {
-            Token = token;
-            await Task.FromResult(0);
+            SessionToken = token;
         }
 
-        public async Task SendMailDeliveryMessageAsync(string from, string toos, string message, string token)
+        public void SendDeliveryMessage(string from, string toos, string message, string token)
         {
-            Token = token;
-            await Task.FromResult(0);
+            MessageToken = token;
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
@@ -113,8 +111,8 @@ namespace msgfiles
             return m_fileStore.StoreFile(filePath);
         }
 
-        public string Token = "";
-        public string Message = "";
+        public string SessionToken = "";
+        public string MessageToken = "";
 
         private Session? m_session = null;
 
@@ -168,9 +166,9 @@ namespace msgfiles
                     bool challenge_required =
                         client.BeginConnect("127.0.0.1", 9914, "Contact", "contact@msgfiles.io");
                     Assert.IsTrue(challenge_required);
-                    while (string.IsNullOrWhiteSpace(server_app.Token))
+                    while (string.IsNullOrWhiteSpace(server_app.SessionToken))
                         Thread.Sleep(100);
-                    client.ContinueConnect(server_app.Token);
+                    client.ContinueConnect(server_app.SessionToken);
                     Assert.IsTrue(!string.IsNullOrWhiteSpace(client.SessionToken));
                     client.Disconnect();
 
@@ -186,7 +184,7 @@ namespace msgfiles
                     Directory.CreateDirectory(client_app.ExtractionDirPath);
 
                     bool should_delete;
-                    Assert.IsTrue(client.GetMessage(server_app.Token, out should_delete));
+                    Assert.IsTrue(client.GetMessage(server_app.MessageToken, out should_delete));
 
                     Assert.AreEqual(client_app.ConfirmedFrom, "Contact <contact@msgfiles.io>");
                     Assert.AreEqual(client_app.ConfirmedMessage, "message");
@@ -201,11 +199,11 @@ namespace msgfiles
                     Assert.AreEqual(1, test_dir_files.Length);
                     Assert.AreEqual(test_dir_file_contents, File.ReadAllText(test_dir_files[0]));
 
-                    Assert.IsTrue(client.DeleteMessage(server_app.Token));
+                    Assert.IsTrue(client.DeleteMessage(server_app.MessageToken));
 
                     try
                     {
-                        client.GetMessage(server_app.Token, out should_delete);
+                        client.GetMessage(server_app.MessageToken, out should_delete);
                         Assert.Fail();
                     }
                     catch (InputException) { }

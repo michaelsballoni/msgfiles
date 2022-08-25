@@ -1,13 +1,9 @@
 ﻿namespace msgfiles
 {
-    public class Session
-    {
-        public string token { get; set; } = "";
-        public string email { get; set; } = "";
-        public string display { get; set; } = "";
-        public Dictionary<string, string> variables { get; set; } = new Dictionary<string, string>();
-    }
-
+    /// <summary>
+    /// HandlerContext provides request handlers 
+    /// with what they need to do their thing
+    /// </summary>
     public class HandlerContext
     {
         public HandlerContext
@@ -24,25 +20,23 @@
             ConnectionStream = connectionStream;
         }
 
-        public IServerApp App;
-        public string ClientAddress;
-        public Dictionary<string, string> Auth;
-        public Stream ConnectionStream;
-
-        public static readonly ServerResponse StandardResponse =
-            new ServerResponse()
-            {
-                version = 1,
-                statusCode = 200,
-                statusMessage = "OK"
-            };
+        public IServerApp App { get; private set; }
+        public string ClientAddress { get; private set; }
+        public Dictionary<string, string> Auth { get; private set; }
+        public Stream ConnectionStream { get; private set; }
     }
 
+    /// <summary>
+    /// Request handlers, given context, handle requests
+    /// </summary>
     public interface IServerRequestHandler
     {
         Task<ServerResponse> HandleRequestAsync(ClientRequest request, HandlerContext ctxt);
     }
 
+    /// <summary>
+    /// Servers must do the heavy lifting
+    /// </summary>
     public interface IServerApp
     {
         // Define how client requests are handled
@@ -51,10 +45,10 @@
         void Log(string msg);
 
         // Send a challenge token to validate
-        Task SendChallengeTokenAsync(string email, string display, string token);
+        void SendChallengeToken(string email, string display, string token);
 
         // Send the message with the manifest and password
-        Task SendMailDeliveryMessageAsync(string from, string to, string message, string pwd);
+        void SendDeliveryMessage(string from, string to, string message, string pwd);
 
         // Sessions
         Session? GetSession(Dictionary<string, string> auth);

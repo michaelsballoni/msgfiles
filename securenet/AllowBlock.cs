@@ -1,48 +1,79 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace msgfiles
+﻿namespace msgfiles
 {
+    /// <summary>
+    /// Manage allow and block lists of email addresses
+    /// to validate that a given email address is allowed access
+    /// </summary>
     public class AllowBlock
     {
+        /// <summary>
+        /// Swap in new lists
+        /// </summary>
         public void SetLists(HashSet<string> allow, HashSet<string> block)
         {
-            m_allowList = allow;
-            m_blockList = block;
+            try
+            {
+                m_rwLock.EnterWriteLock();
+
+                m_allowList = allow;
+                m_blockList = block;
+            }
+            finally
+            {
+                m_rwLock.ExitWriteLock();
+            }
         }
 
-
-
+        /// <summary>
+        /// Ensure that an email address or its domain is allowed,
+        /// or at least not blocked
+        /// </summary>
         public void EnsureEmailAllowed(string email)
         {
-            email = Utils.GetValidEmail(email).ToLower();
-            if (email.Length == 0)
-                throw new InputException($"Invalid email: {email}");
+            try
+            {
+                m_rwLock.EnterReadLock();
 
-            string domain = email.Substring(email.IndexOf('@')).ToLower();
+                // Normalize the email address
+                email = Utils.GetValidEmail(email).ToLower();
+                if (email.Length == 0)
+                    throw new InputException($"Invalid email: {email}");
 
-            if (m_allowList.Contains(email))
-                return;
+                // Include the leading @, list files use this to allow/block entire domains
+                string domain = email.Substring(email.IndexOf('@')).ToLower();
 
-            if (m_blockList.Contains(email))
-                throw new InputException($"Blocked email: {email}");
+                // Look for specific email address blocks first, that trumps all
+                if (m_blockList.Contains(email))
+                    throw new InputException($"Blocked email: {email}");
 
-            if (m_allowList.Contains(domain))
-                return;
+                // Check for specific email address being allowed, this trumps domains
+                if (m_allowList.Contains(email))
+                    return;
 
-            if (m_blockList.Contains(domain))
-                throw new InputException($"Blocked domain: {email}");
+                // Check for a whole blocked domain
+                if (m_blockList.Contains(domain))
+                    throw new InputException($"Blocked domain: {email}");
 
-            if (m_allowList.Count > 0)
-                throw new InputException($"Not allowed: {email}");
+                // Allow a whole domain
+                if (m_allowList.Contains(domain))
+                    return;
 
-            // no allow list, not blocked -> allowed
+                // Failing all of that, if there is an allow list,
+                // the email is not on any of them, so they're blocked by default
+                if (m_allowList.Count > 0)
+                    throw new InputException($"Not allowed: {email}");
+
+                // no allow list, not blocked -> allowed
+            }
+            finally
+            {
+                m_rwLock.ExitReadLock();
+            }
         }
 
         private HashSet<string> m_allowList = new HashSet<string>();
         private HashSet<string> m_blockList = new HashSet<string>();
+
+        private ReaderWriterLockSlim m_rwLock = new ReaderWriterLockSlim();
     }
 }

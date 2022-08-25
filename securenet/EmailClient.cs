@@ -3,17 +3,19 @@ using System.Net.Mail;
 
 namespace msgfiles
 {
+    /// <summary>
+    /// SmtpClient wrapper class
+    /// </summary>
     public class EmailClient
     {
         public EmailClient(string server, int port, string username, string password)
         {
             m_server = server;
             m_port = port;
-            m_username = username;
-            m_password = password;
+            m_credential = new NetworkCredential(username, password);
         }
 
-        public async Task SendEmailAsync
+        public void SendEmail
         (
             string from, // display <email> or just email
             Dictionary<string, string> toAddrs, // email -> display
@@ -33,17 +35,14 @@ namespace msgfiles
             mail_message.Body = body;
 
             SmtpClient client = new SmtpClient(m_server, m_port);
-            client.Credentials = new NetworkCredential(m_username, m_password);
+            client.Credentials = m_credential;
             client.DeliveryMethod = SmtpDeliveryMethod.Network;
             client.EnableSsl = true;
-
             client.SendAsync(mail_message, null);
-            await Task.FromResult(0);
         }
 
         private string m_server;
         private int m_port;
-        private string m_username;
-        private string m_password;
+        private NetworkCredential m_credential;
     }
 }

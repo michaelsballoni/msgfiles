@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-
 
 namespace msgfiles
 {
+    /// <summary>
+    /// ServerClient manages server request processing
+    /// </summary>
     internal class ServerClient : IDisposable
     {
         public ServerClient(IServerApp app, X509Certificate cert, TcpClient client)
@@ -77,7 +75,7 @@ namespace msgfiles
                 {
                     Log("Sending challenge token...");
                     string challenge_token = Utils.GenChallenge();
-                    await m_app.SendChallengeTokenAsync
+                    m_app.SendChallengeToken
                     (
                         auth_request.headers["email"],
                         auth_request.headers["display"],
@@ -189,7 +187,7 @@ namespace msgfiles
 
         private void Log(string message)
         {
-            if (!string.IsNullOrEmpty(m_clientEmail))
+            if (m_clientEmail != "")
                 m_app.Log($"{m_clientAddress} - {m_clientEmail}: {message}");
             else
                 m_app.Log($"{m_clientAddress}: {message}");

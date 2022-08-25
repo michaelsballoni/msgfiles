@@ -2,6 +2,10 @@
 
 namespace msgfiles
 {
+    /// <summary>
+    /// TempFileUse interacts with TempFileStore to define a period during which
+    /// a temp file is in use and should not be deleted
+    /// </summary>
     public class TempFileUse : IDisposable
     {
         public TempFileUse(string extension)
@@ -23,6 +27,11 @@ namespace msgfiles
         }
     }
 
+    /// <summary>
+    /// TempFileStore manages a temp directory of temp files that are in use
+    /// At startup, and regularly thereafter, temp files are purged
+    /// leaving the system clean
+    /// </summary>
     public static class TempFileStore
     {
         public static string GetPathToUse(string extension)
@@ -107,6 +116,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Stop the cleanup timer
+        /// Used by unit tests
+        /// </summary>
         public static void DisableAutoCleanup()
         {
             sm_cleanupTimer.Dispose();

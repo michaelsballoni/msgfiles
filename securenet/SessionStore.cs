@@ -1,40 +1,44 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Data.SQLite;
-using Newtonsoft.Json;
+﻿using System.Data.SQLite;
 
 namespace msgfiles
 {
+    /// <summary>
+    /// Manage user sessions
+    /// </summary>
     public class SessionStore : IDisposable
     {
         public SessionStore(string dbFilePath)
         {
-            bool file_existed = File.Exists(dbFilePath);
+            if (!File.Exists(dbFilePath))
+            {
+                using (var db = new SQLiteConnection($"Data Source={dbFilePath}"))
+                {
+                    db.Open();
+
+                    using (var cmd = new SQLiteCommand("PRAGMA journal_mode = WAL", db))
+                        cmd.ExecuteNonQuery();
+                    using (var cmd = new SQLiteCommand("PRAGMA synchronous = NORMAL", db))
+                        cmd.ExecuteNonQuery();
+
+                    string table_create_sql =
+                        "CREATE TABLE sessions " +
+                        "(token STRING CONSTRAINT sessions_primary_key PRIMARY KEY, " +
+                        "display STRING NOT NULL, " +
+                        "email STRING NOT NULL, " +
+                        "lastaccessEpoch INTEGER NOT NULL, " +
+                        "variables STRING NULL)";
+                    using (var cmd = new SQLiteCommand(table_create_sql, db))
+                        cmd.ExecuteNonQuery();
+
+                    string index_create_sql =
+                        "CREATE INDEX session_emails_idx ON sessions (email)";
+                    using (var cmd = new SQLiteCommand(index_create_sql, db))
+                        cmd.ExecuteNonQuery();
+                }
+            }
 
             m_db = new SQLiteConnection($"Data Source={dbFilePath}");
             m_db.Open();
-
-            if (!file_existed)
-            {
-                string table_create_sql =
-                    "CREATE TABLE sessions " +
-                    "(token STRING CONSTRAINT sessions_primary_key PRIMARY KEY, " +
-                    "display STRING NOT NULL, " +
-                    "email STRING NOT NULL, " +
-                    "lastaccessEpoch INTEGER NOT NULL, "  +
-                    "variables STRING NULL)";
-                using (var cmd = new SQLiteCommand(table_create_sql, m_db))
-                    cmd.ExecuteNonQuery();
-
-                string index_create_sql =
-                    "CREATE INDEX session_emails_idx ON sessions (email)";
-                using (var cmd = new SQLiteCommand(index_create_sql, m_db))
-                    cmd.ExecuteNonQuery();
-            }
         }
 
         public void Dispose()
@@ -49,10 +53,16 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Given a session token, try to get out a session
+        /// Returns null if session not found
+        /// </summary>
         public Session? GetSession(string token)
         {
             lock (this)
             {
+                // Bump the timestamp
+                // If nothing affected, there must not be a session for this user
                 string update_sql =
                     "UPDATE sessions SET lastaccessEpoch = @epochSeconds WHERE token = @token";
                 using (var cmd = new SQLiteCommand(update_sql, m_db))
@@ -63,6 +73,7 @@ namespace msgfiles
                         return null;
                 }
 
+                // Read out the session variables, just email and display for now
                 string select_sql = "SELECT email, display, variables FROM sessions WHERE token = @token";
                 using (var cmd = new SQLiteCommand(select_sql, m_db))
                 {
@@ -94,12 +105,14 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Given user information, create and return a session
+        /// </summary>
         public Session CreateSession(string email, string display)
         {
             lock (this)
             {
                 string token = Guid.NewGuid().ToString();
-
                 string insert_sql =
                     "INSERT INTO sessions (token, email, display, lastaccessEpoch, variables) " +
                                     "VALUES (@token, @email, @display, @epochSeconds, NULL)";
@@ -111,7 +124,6 @@ namespace msgfiles
                     cmd.Parameters.AddWithValue("@epochSeconds", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                     cmd.ExecuteNonQuery();
                 }
-
                 return
                     new Session()
                     {
@@ -135,6 +147,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Prune old sessions
+        /// In seconds for unit tests
+        /// </summary>
         public int DropOldSessions(int maxAgeSeconds)
         {
             List<string> old_session_tokens = new List<string>();

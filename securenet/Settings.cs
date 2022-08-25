@@ -2,6 +2,9 @@
 
 namespace msgfiles
 {
+    /// <summary>
+    /// Settings is a thread-safe, read-write INI file processing class
+    /// </summary>
     public class Settings
     {
         public Settings(string filePath)
@@ -13,6 +16,9 @@ namespace msgfiles
                 Load();
         }
 
+        /// <summary>
+        /// Load settings from the INI file
+        /// </summary>
         public void Load()
         {
             try
@@ -66,6 +72,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Save settings to the INI file
+        /// </summary>
         public void Save()
         {
             try
@@ -91,6 +100,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Get an INI setting
+        /// </summary>
         public string Get(string section, string name)
         {
             try
@@ -108,6 +120,10 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Put an INI settings
+        /// Use the value null to remove a setting
+        /// </summary>
         public void Set(string section, string name, string? settingValue)
         {
             try
@@ -128,6 +144,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Get a list from settings like SomeSetting1, SomeSettings2, etc.
+        /// </summary>
         public List<string> GetSeries(string section, string name)
         {
             try
@@ -155,6 +174,12 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Save a list of strings as numeber settings
+        /// </summary>
+        /// <param name="section"></param>
+        /// <param name="name"></param>
+        /// <param name="seriesValues"></param>
         public void SetSeries(string section, string name, List<string> seriesValues)
         {
             try

@@ -2,7 +2,9 @@
 using msgfiles;
 
 string docs_dir = ServerApp.AppDocsDirPath;
+Console.WriteLine($"Home Directory: {docs_dir}");
 
+Console.WriteLine("Ensuring settings.ini..");
 string settings_file_path = Path.Combine(docs_dir, "settings.ini");
 if (!File.Exists(settings_file_path))
 {
@@ -29,7 +31,6 @@ if (!File.Exists(settings_file_path))
 }
 
 Console.WriteLine("Starting up...");
-
 ServerApp? server_app = null;
 while (true)
 {
@@ -84,7 +85,7 @@ try
             Console.Write("> ");
 
             string cmd = Console.ReadLine() ?? "";
-            if (cmd == null || string.IsNullOrWhiteSpace(cmd))
+            if (string.IsNullOrWhiteSpace(cmd))
                 continue;
 
             switch (cmd.Trim().ToLower())

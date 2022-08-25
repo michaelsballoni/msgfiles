@@ -4,10 +4,17 @@ using Newtonsoft.Json;
 
 namespace msgfiles
 {
+    /// <summary>
+    /// MsgClient implements the client application's functionality
+    /// The application simply handles pacification and user prompts
+    /// </summary>
     public class MsgClient : Client
     {
         public MsgClient(IClientApp app) : base(app) { }
 
+        /// <summary>
+        /// Send a message with files to recipients
+        /// </summary>
         public bool SendMsg
         (
             IEnumerable<string> to, 
@@ -84,7 +91,12 @@ namespace msgfiles
             }
         }
 
-        public bool GetMessage(string token, out bool shouldDelete)
+        /// <summary>
+        /// Given a message token, get a message for the current user
+        /// Returns true if getting the message succeeded
+        /// Sets shouldDelete to true if the user canceled the operation
+        /// </summary>
+        public bool GetMessage(string msgToken, out bool shouldDelete)
         {
             shouldDelete = false;
 
@@ -96,7 +108,7 @@ namespace msgfiles
                     verb = "GET",
                     headers = 
                         new Dictionary<string, string>() 
-                        { { "token", token } }
+                        { { "token", msgToken } }
                 };
             if (ServerStream == null)
                 return false;
@@ -117,7 +129,7 @@ namespace msgfiles
                 if (m == null)
                     return false;
                 else
-                    token = m.token;
+                    msgToken = m.token;
 
                 using (var temp_file_use = new TempFileUse(".zip"))
                 {
@@ -181,6 +193,9 @@ namespace msgfiles
             }
         }
 
+        /// <summary>
+        /// Delete a message given its token
+        /// </summary>
         public bool DeleteMessage(string token)
         {
             App.Log("Deleting message...");
