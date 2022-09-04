@@ -157,58 +157,88 @@ namespace msgfiles
             string to = ctxt.Auth["email"];
             m_allowBlock.EnsureEmailAllowed(to);
 
-            Utils.NormalizeDict(request.headers, new[] { "token" });
+            Utils.NormalizeDict(request.headers, new[] { "token", "part" });
 
             string token = request.headers["token"];
             if (token.Length == 0)
                 throw new InputException("Header missing: token");
 
-            Log(ctxt, $"Get Message: {to} - {token}");
+            string part_to_get = request.headers["part"];
+            if (part_to_get.Length == 0)
+                throw new InputException("Header missing: part");
+
+            bool get_msg = false, get_file = false;
+            if (part_to_get == "msg")
+                get_msg = true;
+            else if (part_to_get == "file")
+                get_file = true;
+            else
+                throw new InputException("Invalid header: part");
+
+            Log(ctxt, $"Get Message: {to} - {token} - {part_to_get}");
 
             string package_file_path, package_file_hash;
-            var msg = m_msgStore.GetMessage(to, token, out package_file_path, out package_file_hash);
-            
-            if (msg == null)
-            {
-                var response_404 =
-                    new ServerResponse()
-                    {
-                        version = 1,
-                        statusCode = 404,
-                        statusMessage = "Message Not Found"
-                    };
-                return response_404;
-            }
+            var msg = 
+                m_msgStore.GetMessage(to, token, out package_file_path, out package_file_hash);
 
-            if (!File.Exists(package_file_path))
+            if (get_msg)
             {
-                var response_404 =
-                    new ServerResponse()
-                    {
-                        version = 1,
-                        statusCode = 404,
-                        statusMessage = "File Not Found"
-                    };
-                return response_404;
-            }
-
-            var response =
-                new ServerResponse()
+                if (msg == null)
                 {
-                    version = 1,
-                    statusCode = 200,
-                    statusMessage = "OK",
-                    contentLength = new FileInfo(package_file_path).Length,
-                    headers =
-                        new Dictionary<string, string>()
+                    var response_404 =
+                        new ServerResponse()
                         {
-                            { "msg", JsonConvert.SerializeObject(msg) },
-                            { "hash", package_file_hash }
-                        },
-                    streamToSend = File.OpenRead(package_file_path)
-                };
-            await Task.FromResult(0);
-            return response;
+                            version = 1,
+                            statusCode = 404,
+                            statusMessage = "Message Not Found"
+                        };
+                    return response_404;
+                }
+
+                var response =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 200,
+                        statusMessage = "OK",
+                        headers =
+                            new Dictionary<string, string>()
+                            { { "msg", JsonConvert.SerializeObject(msg) } },
+                    };
+                await Task.FromResult(0);
+                return response;
+            }
+            else if (get_file)
+            {
+                if (!File.Exists(package_file_path))
+                {
+                    var response_404 =
+                        new ServerResponse()
+                        {
+                            version = 1,
+                            statusCode = 404,
+                            statusMessage = "File Not Found"
+                        };
+                    return response_404;
+                }
+
+                var response =
+                    new ServerResponse()
+                    {
+                        version = 1,
+                        statusCode = 200,
+                        statusMessage = "OK",
+                        contentLength = new FileInfo(package_file_path).Length,
+                        headers =
+                            new Dictionary<string, string>()
+                            { { "hash", package_file_hash } },
+                        streamToSend = File.OpenRead(package_file_path)
+                    };
+                await Task.FromResult(0);
+                return response;
+            }
+            else
+                throw new InputException("Invalid header: part");
         }
 
         private async Task<ServerResponse> HandleDeleteRequestAsync(ClientRequest request, HandlerContext ctxt)

@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Diagnostics;
+using System.Threading;
 
 namespace msgfiles
 {
@@ -44,19 +45,20 @@ namespace msgfiles
 
             string file_path = 
                 Path.Combine(sm_tempFileDirPath, $"{Guid.NewGuid()}{extension}");
+
             lock (sm_filesInUse)
-                sm_filesInUse.Add(file_path);
+                sm_filesInUse.Add(file_path.ToLower());
 
             return file_path;
         }
 
         public static void RelinquishPath(string filePath)
         {
-            if (filePath == "")
+            if (string.IsNullOrEmpty(filePath))
                 return;
 
             lock (sm_filesInUse)
-                sm_filesInUse.Remove(filePath);
+                sm_filesInUse.Remove(filePath.ToLower());
         }
 
         public static void CleanupDir(object? state)
@@ -85,18 +87,15 @@ namespace msgfiles
                     DateTime old_time =
                         DateTime.UtcNow - new TimeSpan(0, 0, max_seconds);
 
-                    var file_paths_to_delete = new List<string>();
-                    var file_paths = Directory.GetFiles(sm_tempFileDirPath);
+                    var file_paths = Directory.GetFiles(sm_tempFileDirPath).AsEnumerable();
                     lock (sm_filesInUse)
-                    {
-                        foreach (string file_path in file_paths)
-                        {
-                            if (sm_filesInUse.Contains(file_path))
-                                continue;
+                        file_paths = file_paths.Where(path => !sm_filesInUse.Contains(path.ToLower()));
 
-                            if (!File.Exists(file_path) || File.GetLastAccessTimeUtc(file_path) < old_time)
-                                file_paths_to_delete.Add(file_path);
-                        }
+                    var file_paths_to_delete = new List<string>();
+                    foreach (string file_path in file_paths)
+                    {
+                        if (!File.Exists(file_path) || File.GetLastAccessTimeUtc(file_path) < old_time)
+                            file_paths_to_delete.Add(file_path);
                     }
 
                     foreach (var file_path in file_paths_to_delete)
@@ -126,7 +125,11 @@ namespace msgfiles
         }
 
         private static string sm_tempFileDirPath = 
-            Path.Combine(Path.GetTempPath(), "msgfiles-temp");
+            Path.Combine
+            (
+                Path.GetTempPath(), 
+                "msgfiles-temp-" + Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().Modules[0].FileName)
+            );
 
         private static HashSet<string> sm_filesInUse = new HashSet<string>();
 

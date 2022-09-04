@@ -42,6 +42,7 @@ namespace msgfiles
                 Log("Receiving auth request...");
                 var auth_request = await SecureNet.ReadObjectAsync<ClientRequest>(m_stream).ConfigureAwait(false);
                 Log("Auth request received.");
+                LogRequest(auth_request);
                 if (auth_request.verb != "AUTH")
                     throw new InputException("Verb should be AUTH");
                 Utils.NormalizeDict(auth_request.headers, new[] { "display", "email", "session" });
@@ -96,6 +97,7 @@ namespace msgfiles
                     Log("Receiving challenge response...");
                     var auth_challenge_response = await SecureNet.ReadObjectAsync<ClientRequest>(m_stream).ConfigureAwait(false);
                     Log("Challenge response received.");
+                    LogRequest(auth_challenge_response);
                     if (auth_challenge_response.verb != "CHALLENGE")
                         throw new InputException("Verb should be CHALLENGE");
                     Utils.NormalizeDict(auth_challenge_response.headers, new[] { "challenge" });
@@ -126,6 +128,7 @@ namespace msgfiles
                 {
                     Log("Receiving request...");
                     var client_request = await SecureNet.ReadObjectAsync<ClientRequest>(m_stream).ConfigureAwait(false);
+                    LogRequest(client_request);
 
                     Log($"Handling request: {client_request.verb}");
                     using (var server_response = await request_handler.HandleRequestAsync(client_request, handler_ctxt).ConfigureAwait(false))
@@ -191,6 +194,21 @@ namespace msgfiles
                 m_app.Log($"{m_clientAddress} - {m_clientEmail}: {message}");
             else
                 m_app.Log($"{m_clientAddress}: {message}");
+        }
+
+        private void LogRequest(ClientRequest request)
+        {
+            string clientEmail = m_clientEmail;
+            if (string.IsNullOrEmpty(clientEmail))
+                clientEmail = "-";
+
+            string token;
+            if (request.headers.ContainsKey("token"))
+                token = request.headers["token"];
+            else
+                token = "-";
+
+            m_app.LogRequest(m_clientAddress, clientEmail, request.verb, token);
         }
 
         private IServerApp m_app;

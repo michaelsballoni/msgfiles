@@ -74,6 +74,11 @@ namespace msgfiles
             Console.WriteLine(message);
         }
 
+        public void LogRequest(string clientIp, string clientEmail, string verb, string token)
+        {
+            Console.WriteLine($"{clientIp} {clientEmail} {verb} {token}");
+        }
+
         public void SendChallengeToken(string email, string display, string token)
         {
             SessionToken = token;

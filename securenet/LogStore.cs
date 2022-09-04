@@ -5,20 +5,24 @@
     /// </summary>
     public class LogStore : IDisposable
     {
-        public LogStore(string dirPath, int logPathCheckSkipCount = 100)
+        public LogStore(string dirPath, string filename)
         {
             if (!Directory.Exists(dirPath))
                 Directory.CreateDirectory(dirPath);
 
             m_dirPath = dirPath;
+            m_filename = filename;
         }
 
         public void Dispose()
         {
-            if (m_curOpenFile != null)
+            lock (m_outputLock)
             {
-                m_curOpenFile.Dispose();
-                m_curOpenFile = null;
+                if (m_curOpenFile != null)
+                {
+                    m_curOpenFile.Dispose();
+                    m_curOpenFile = null;
+                }
             }
         }
 
@@ -28,23 +32,26 @@
         /// </summary>
         public void Log(string msg)
         {
-            if (m_curOpenFileStamp != LogFileStamp)
+            lock (m_outputLock)
             {
-                if (m_curOpenFile != null)
+                if (m_curOpenFileStamp != LogFileStamp)
                 {
-                    m_curOpenFile.Dispose();
-                    m_curOpenFile = null;
+                    if (m_curOpenFile != null)
+                    {
+                        m_curOpenFile.Dispose();
+                        m_curOpenFile = null;
+                    }
+
+                    m_curOpenFile = new StreamWriter(LogPath, append: true);
+                    m_curOpenFile.AutoFlush = true;
+                    m_curOpenFileStamp = LogFileStamp;
                 }
 
-                m_curOpenFile = new StreamWriter(LogPath, append: true);
-                m_curOpenFile.AutoFlush = true;
-                m_curOpenFileStamp = LogFileStamp;
+                if (m_curOpenFile == null)
+                    throw new NullReferenceException("m_curOpenFile");
+                else
+                    m_curOpenFile.WriteLine(msg);
             }
-
-            if (m_curOpenFile == null)
-                throw new NullReferenceException("m_curOpenFile");
-            else
-                m_curOpenFile.WriteLine(msg);
         }
 
         /// <summary>
@@ -88,12 +95,14 @@
             return files_deleted;
         }
 
-        private string LogPath => Path.Combine(m_dirPath, LogFileStamp + ".log");
+        private string LogPath => Path.Combine(m_dirPath, $"{m_filename}-{LogFileStamp}.log");
         private string LogFileStamp => DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         private string m_curOpenFileStamp = "";
         private StreamWriter? m_curOpenFile;
+        private object m_outputLock = new object();
 
         private string m_dirPath;
+        private string m_filename;
     }
 }

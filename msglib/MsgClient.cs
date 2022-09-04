@@ -100,95 +100,130 @@ namespace msgfiles
         {
             shouldDelete = false;
 
-            App.Log("Sending GET request...");
-            var request =
-                new ClientRequest()
-                {
-                    version = 1,
-                    verb = "GET",
-                    headers = 
-                        new Dictionary<string, string>() 
-                        { { "token", msgToken } }
-                };
-            if (ServerStream == null)
-                return false;
-            SecureNet.SendObject(ServerStream, request);
-
-            App.Log("Receiving GET response...");
-            if (ServerStream == null)
-                return false;
-            using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
             {
-                App.Log($"Server Response: {response.ResponseSummary}");
-                if (response.statusCode / 100 != 2)
-                    throw response.CreateException();
-
-                msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
-                string status = m == null ? "(null)" : m.from;
-                App.Log($"Message: {status}");
-                if (m == null)
+                App.Log("Sending GET msg request...");
+                var request =
+                    new ClientRequest()
+                    {
+                        version = 1,
+                        verb = "GET",
+                        headers =
+                            new Dictionary<string, string>()
+                            { { "token", msgToken }, { "part", "msg"} }
+                    };
+                if (ServerStream == null)
                     return false;
-                else
-                    msgToken = m.token;
+                SecureNet.SendObject(ServerStream, request);
+                if (App.Cancelled)
+                    return false;
 
-                using (var temp_file_use = new TempFileUse(".zip"))
+                App.Log("Receiving GET msg response...");
+                if (ServerStream == null)
+                    return false;
+                using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
                 {
-                    string temp_file_path = temp_file_use.FilePath;
+                    App.Log($"Server Response: {response.ResponseSummary}");
+                    if (response.statusCode / 100 != 2)
+                        throw response.CreateException();
+
+                    msg? m = JsonConvert.DeserializeObject<msg>(response.headers["msg"]);
+                    string status = m == null ? "(null)" : m.from;
+                    App.Log($"Message: {status}");
+                    if (m == null)
+                        return false;
+                    else
+                        msgToken = m.token;
+
                     if (!App.ConfirmDownload(m.from, m.message, out shouldDelete))
                         return false;
- 
-                    App.Log($"Downloading files...");
-                    if (App.Cancelled)
-                        return false;
-                    using (var fs = File.OpenWrite(temp_file_path))
+                }
+            }
+
+            {
+                App.Log("Sending GET file request...");
+                var request =
+                    new ClientRequest()
                     {
-                        long total_to_read = response.contentLength;
-                        long read_yet = 0;
-                        byte[] buffer = new byte[64 * 1024];
-                        while (read_yet < total_to_read)
+                        version = 1,
+                        verb = "GET",
+                        headers =
+                            new Dictionary<string, string>()
+                            { { "token", msgToken }, { "part", "file"} }
+                    };
+                if (ServerStream == null)
+                    return false;
+                SecureNet.SendObject(ServerStream, request);
+                if (App.Cancelled)
+                    return false;
+
+                App.Log("Receiving GET file response...");
+                if (ServerStream == null)
+                    return false;
+                using (var response = SecureNet.ReadObject<ServerResponse>(ServerStream))
+                {
+                    App.Log($"Server Response: {response.ResponseSummary}");
+                    if (response.statusCode / 100 != 2)
+                        throw response.CreateException();
+
+                    using (var temp_file_use = new TempFileUse(".zip"))
+                    {
+                        string temp_file_path = temp_file_use.FilePath;
+
+                        App.Log($"Downloading files...");
+                        if (App.Cancelled)
+                            return false;
+                        using (var fs = File.OpenWrite(temp_file_path))
                         {
-                            int to_read = (int)Math.Min(total_to_read - read_yet, buffer.Length);
-                            if (ServerStream == null)
-                                return false;
-                            int read = ServerStream.Read(buffer, 0, to_read);
-                            if (App.Cancelled)
-                                return false;
+                            long total_to_read = response.contentLength;
+                            long read_yet = 0;
+                            byte[] buffer = new byte[64 * 1024];
+                            while (read_yet < total_to_read)
+                            {
+                                int to_read = (int)Math.Min(total_to_read - read_yet, buffer.Length);
+                                if (ServerStream == null)
+                                    return false;
+                                int read = ServerStream.Read(buffer, 0, to_read);
+                                if (App.Cancelled)
+                                    return false;
 
-                            if (read == 0)
-                                throw new NetworkException("Connection lost");
-                            fs.Write(buffer, 0, read);
-                            if (App.Cancelled)
-                                return false;
+                                if (read == 0)
+                                    throw new NetworkException("Connection lost");
+                                fs.Write(buffer, 0, read);
+                                if (App.Cancelled)
+                                    return false;
 
-                            read_yet += read;
+                                read_yet += read;
 
-                            App.Progress((double)read_yet / total_to_read);
+                                App.Progress((double)read_yet / total_to_read);
+                            }
                         }
+
+                        App.Log($"Scanning downloaded files...");
+                        if (App.Cancelled)
+                            return false;
+                        string local_hash;
+                        using (var fs = File.OpenRead(temp_file_path))
+                            local_hash = Utils.HashStream(fs);
+                        if (App.Cancelled)
+                            return false;
+                        if (local_hash != response.headers["hash"])
+                            throw new NetworkException("File transmission error");
+
+                        App.Log($"Examining downloaded files...");
+                        string manifest = Utils.ManifestZip(temp_file_path);
+                        if (App.Cancelled)
+                            return false;
+
+                        string extraction_dir_path = "";
+                        if (!App.ConfirmExtraction(manifest, out shouldDelete, out extraction_dir_path))
+                            return false;
+
+                        App.Log($"Saving downloaded files...");
+                        Utils.ExtractZip(App, temp_file_path, extraction_dir_path);
+
+                        App.Log($"All done.");
+                        return true;
                     }
-
-                    App.Log($"Scanning downloaded files...");
-                    if (App.Cancelled)
-                        return false;
-                    string local_hash;
-                    using (var fs = File.OpenRead(temp_file_path))
-                        local_hash = Utils.HashStream(fs);
-                    if (App.Cancelled)
-                        return false;
-                    if (local_hash != response.headers["hash"])
-                        throw new NetworkException("File transmission error");
-
-                    App.Log($"Examining downloaded files...");
-                    string manifest = Utils.ManifestZip(temp_file_path);
-                    if (App.Cancelled)
-                        return false;
-
-                    string extraction_dir_path = "";
-                    if (!App.ConfirmExtraction(manifest, out shouldDelete, out extraction_dir_path))
-                        return false;
-
-                    App.Log($"Saving downloaded files...");
-                    Utils.ExtractZip(App, temp_file_path, extraction_dir_path);
-                    return true;
                 }
             }
         }

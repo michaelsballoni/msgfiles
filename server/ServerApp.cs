@@ -63,7 +63,8 @@
 
             m_fileStore = new FileStore(m_settings.Get("application", "FileStoreDir"));
 
-            m_logStore = new LogStore(Path.Combine(AppDocsDirPath, "logs"));
+            m_logStore = new LogStore(Path.Combine(AppDocsDirPath, "logs"), "raw");
+            m_accessStore = new LogStore(Path.Combine(AppDocsDirPath, "logs"), "access");
 
             string mail_server = m_settings.Get("application", "MailServer");
             if (string.IsNullOrWhiteSpace(mail_server))
@@ -107,6 +108,7 @@
             m_sessions.Dispose();
             m_messageStore.Dispose();
             m_logStore.Dispose();
+            m_accessStore.Dispose();
         }
 
         /// <summary>
@@ -155,6 +157,11 @@
         public void Log(string msg)
         {
             m_logStore.Log(DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss") + " " + msg);
+        }
+
+        public void LogRequest(string clientIp, string clientEmail, string verb, string token)
+        {
+            m_accessStore.Log($"{DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss")} {clientIp} {clientEmail} {verb} {token}");
         }
 
         public Session CreateSession(Dictionary<string, string> auth)
@@ -278,6 +285,7 @@
                 m_messageStore.DeleteOldMessages(86400 * age_off_days);
                 m_fileStore.DeleteOldFiles(86400 * age_off_days);
                 m_logStore.DeleteOldLogs(86400 * age_off_days);
+                m_accessStore.DeleteOldLogs(86400 * age_off_days);
             }
         }
 
@@ -294,6 +302,7 @@
         private FileStore m_fileStore;
         private MessageStore m_messageStore;
         private LogStore m_logStore;
+        private LogStore m_accessStore;
 
         private Timer m_maintenanceTimer;
     }

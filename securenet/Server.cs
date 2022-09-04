@@ -102,7 +102,7 @@ namespace msgfiles
                 }
                 Thread.Sleep(100);
             }
-            m_app.Log("Stop: All done.");
+            m_app.Log("Stop: Stopped.");
         }
 
         private async Task HandleClientAsync(TcpClient client)

@@ -43,6 +43,7 @@
         IServerRequestHandler RequestHandler { get; }
 
         void Log(string msg);
+        void LogRequest(string clientIp, string clientEmail, string verb, string token);
 
         // Send a challenge token to validate
         void SendChallengeToken(string email, string display, string token);
