@@ -44,7 +44,7 @@
             this.AddressCheckListBox.FormattingEnabled = true;
             this.AddressCheckListBox.Location = new System.Drawing.Point(12, 208);
             this.AddressCheckListBox.Name = "AddressCheckListBox";
-            this.AddressCheckListBox.Size = new System.Drawing.Size(884, 796);
+            this.AddressCheckListBox.Size = new System.Drawing.Size(884, 928);
             this.AddressCheckListBox.Sorted = true;
             this.AddressCheckListBox.TabIndex = 4;
             // 
@@ -101,7 +101,7 @@
             this.AcceptButton = this.OkButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(921, 1051);
+            this.ClientSize = new System.Drawing.Size(921, 1161);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.DeleteButton);
             this.Controls.Add(this.AddAddressButton);
@@ -110,6 +110,7 @@
             this.Controls.Add(this.AddressCheckListBox);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "AddressBookForm";
+            this.ShowInTaskbar = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Address Book";

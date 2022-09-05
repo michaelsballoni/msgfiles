@@ -175,6 +175,7 @@
             this.ToEmailsTextBox.Location = new System.Drawing.Point(15, 46);
             this.ToEmailsTextBox.Multiline = true;
             this.ToEmailsTextBox.Name = "ToEmailsTextBox";
+            this.ToEmailsTextBox.ReadOnly = true;
             this.ToEmailsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ToEmailsTextBox.Size = new System.Drawing.Size(1072, 106);
             this.ToEmailsTextBox.TabIndex = 1;

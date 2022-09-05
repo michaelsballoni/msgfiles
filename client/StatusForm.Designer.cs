@@ -74,6 +74,8 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "StatusForm";
+            this.ShowInTaskbar = false;
+            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files";
             this.Load += new System.EventHandler(this.StatusForm_Load);

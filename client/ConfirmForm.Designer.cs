@@ -45,7 +45,7 @@
             this.ContentTextBox.Name = "ContentTextBox";
             this.ContentTextBox.ReadOnly = true;
             this.ContentTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ContentTextBox.Size = new System.Drawing.Size(1329, 748);
+            this.ContentTextBox.Size = new System.Drawing.Size(1329, 868);
             this.ContentTextBox.TabIndex = 3;
             // 
             // ConfirmMessageLabel
@@ -81,12 +81,13 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1353, 1027);
+            this.ClientSize = new System.Drawing.Size(1353, 1161);
             this.Controls.Add(this.LooksBadButton);
             this.Controls.Add(this.LooksGoodButton);
             this.Controls.Add(this.ConfirmMessageLabel);
             this.Controls.Add(this.ContentTextBox);
             this.Name = "ConfirmForm";
+            this.ShowInTaskbar = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Message Files - Confirm";
