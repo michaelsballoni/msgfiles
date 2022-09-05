@@ -200,7 +200,12 @@ namespace msgfiles
         {
             string clientEmail = m_clientEmail;
             if (string.IsNullOrEmpty(clientEmail))
-                clientEmail = "-";
+            {
+                if (request.headers.ContainsKey("email"))
+                    clientEmail = request.headers["email"];
+                else
+                    clientEmail = "-";
+            }
 
             string token;
             if (request.headers.ContainsKey("token"))

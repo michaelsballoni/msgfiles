@@ -20,7 +20,7 @@
 
             if (!int.TryParse
             (
-                m_settings.Get("application", "MaxSendPayloadMB"), 
+                m_settings.Get("application", "MaxSendPayloadMB"),
                 out MsgRequestHandler.MaxSendPayloadMB
             ))
             {
@@ -92,12 +92,10 @@
             m_maintenanceTimer = new Timer(MaintenanceTimer, null, 0, 60 * 1000);
 
             var to_kvp = Utils.ParseEmail(m_settings.Get("application", "MailAdminAddress"));
-            var to_dict = new Dictionary<string, string>();
-            to_dict.Add(to_kvp.Key, to_kvp.Value);
             m_emailClient.SendEmail
             (
                 m_settings.Get("application", "MailFromAddress"),
-                to_dict,
+                new Dictionary<string, string>() { { to_kvp.Key, to_kvp.Value } },
                 "Server Started Up",
                 "So far so good..."
             );
