@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace msgfiles
 {
     public partial class MainForm : Form
@@ -64,6 +66,14 @@ namespace msgfiles
 
             using (var status_dlg = new StatusForm(pwd))
                 status_dlg.ShowDialog();
+        }
+
+        private void TheLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            var psi = new ProcessStartInfo();
+            psi.FileName = "https://msgfiles.io";
+            psi.UseShellExecute = true;
+            Process.Start(psi);
         }
     }
 }

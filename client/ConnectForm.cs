@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace msgfiles
 {
@@ -167,6 +168,14 @@ namespace msgfiles
                 StatusBarLabel.Text = "Ready";
                 ConnectButton.Enabled = true;
             }
+        }
+
+        private void TheLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            var psi = new ProcessStartInfo();
+            psi.FileName = "https://msgfiles.io";
+            psi.UseShellExecute = true;
+            Process.Start(psi);
         }
     }
 }

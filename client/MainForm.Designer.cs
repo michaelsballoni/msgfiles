@@ -32,6 +32,7 @@
             this.ConnectAsButton = new System.Windows.Forms.Button();
             this.ConnectAsLabel = new System.Windows.Forms.Label();
             this.GetFilesButton = new System.Windows.Forms.Button();
+            this.TheLinkLabel = new System.Windows.Forms.LinkLabel();
             this.SuspendLayout();
             // 
             // SendFilesButton
@@ -73,11 +74,23 @@
             this.GetFilesButton.UseVisualStyleBackColor = true;
             this.GetFilesButton.Click += new System.EventHandler(this.GetFilesButton_Click);
             // 
+            // TheLinkLabel
+            // 
+            this.TheLinkLabel.AutoSize = true;
+            this.TheLinkLabel.Location = new System.Drawing.Point(250, 473);
+            this.TheLinkLabel.Name = "TheLinkLabel";
+            this.TheLinkLabel.Size = new System.Drawing.Size(924, 41);
+            this.TheLinkLabel.TabIndex = 9;
+            this.TheLinkLabel.TabStop = true;
+            this.TheLinkLabel.Text = "Visit msgfiles.io for details on this application and setting up a server";
+            this.TheLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.TheLinkLabel_LinkClicked);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1432, 562);
+            this.Controls.Add(this.TheLinkLabel);
             this.Controls.Add(this.GetFilesButton);
             this.Controls.Add(this.ConnectAsLabel);
             this.Controls.Add(this.ConnectAsButton);
@@ -99,5 +112,6 @@
         private Button ConnectAsButton;
         private Label ConnectAsLabel;
         private Button GetFilesButton;
+        private LinkLabel TheLinkLabel;
     }
 }

@@ -38,6 +38,7 @@
             this.ReturnButton = new System.Windows.Forms.Button();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.StatusBarLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.TheLinkLabel = new System.Windows.Forms.LinkLabel();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -122,7 +123,7 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(40, 40);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusBarLabel});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 388);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 491);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(1126, 54);
             this.statusStrip1.TabIndex = 7;
@@ -134,11 +135,23 @@
             this.StatusBarLabel.Size = new System.Drawing.Size(99, 41);
             this.StatusBarLabel.Text = "Ready";
             // 
+            // TheLinkLabel
+            // 
+            this.TheLinkLabel.AutoSize = true;
+            this.TheLinkLabel.Location = new System.Drawing.Point(95, 415);
+            this.TheLinkLabel.Name = "TheLinkLabel";
+            this.TheLinkLabel.Size = new System.Drawing.Size(924, 41);
+            this.TheLinkLabel.TabIndex = 8;
+            this.TheLinkLabel.TabStop = true;
+            this.TheLinkLabel.Text = "Visit msgfiles.io for details on this application and setting up a server";
+            this.TheLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.TheLinkLabel_LinkClicked);
+            // 
             // ConnectForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 41F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1126, 442);
+            this.ClientSize = new System.Drawing.Size(1126, 545);
+            this.Controls.Add(this.TheLinkLabel);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.ReturnButton);
             this.Controls.Add(this.ConnectButton);
@@ -173,5 +186,6 @@
         public TextBox ServerTextBox;
         private StatusStrip statusStrip1;
         private ToolStripStatusLabel StatusBarLabel;
+        private LinkLabel TheLinkLabel;
     }
 }

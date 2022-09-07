@@ -165,7 +165,7 @@
             this.AddressButton.Name = "AddressButton";
             this.AddressButton.Size = new System.Drawing.Size(142, 106);
             this.AddressButton.TabIndex = 2;
-            this.AddressButton.Text = "...";
+            this.AddressButton.Text = "To...";
             this.AddressButton.UseVisualStyleBackColor = true;
             this.AddressButton.Click += new System.EventHandler(this.AddressButton_Click);
             // 
